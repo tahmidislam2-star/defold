@@ -1,0 +1,43 @@
+animations {
+  id: "blue"
+  images {
+    image: "/sprites/blue.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+}
+animations {
+  id: "green"
+  images {
+    image: "/sprites/green.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+}
+animations {
+  id: "lime"
+  images {
+    image: "/sprites/lime.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+}
+animations {
+  id: "red"
+  images {
+    image: "/sprites/red.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+}
+animations {
+  id: "yellow"
+  images {
+    image: "/sprites/yellow.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+}
+animations {
+  id: "brown"
+  images {
+    image: "/sprites/brown.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+}
+extrude_borders: 2

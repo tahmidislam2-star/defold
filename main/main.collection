@@ -1,0 +1,95 @@
+name: "main"
+scale_along_z: 0
+embedded_instances {
+  id: "background"
+  data: "embedded_components {\n"
+  "  id: \"sprite\"\n"
+  "  type: \"sprite\"\n"
+  "  data: \"default_animation: \\\"custom_bg\\\"\\n"
+  "material: \\\"/builtins/materials/sprite.material\\\"\\n"
+  "textures {\\n"
+  "  sampler: \\\"texture_sampler\\\"\\n"
+  "  texture: \\\"/assets/background.atlas\\\"\\n"
+  "}\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    x: 320.0
+    y: 180.0
+  }
+}
+embedded_instances {
+  id: "player"
+  data: "components {\n"
+  "  id: \"player\"\n"
+  "  component: \"/scripts/player.script\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"sprite\"\n"
+  "  type: \"sprite\"\n"
+  "  data: \"default_animation: \\\"player_demo\\\"\\n"
+  "material: \\\"/builtins/materials/sprite.material\\\"\\n"
+  "textures {\\n"
+  "  sampler: \\\"texture_sampler\\\"\\n"
+  "  texture: \\\"/assets/Player.atlas\\\"\\n"
+  "}\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    x: 208.0
+    y: 179.0
+    z: 1.0
+  }
+}
+embedded_instances {
+  id: "gun"
+  data: "components {\n"
+  "  id: \"gun\"\n"
+  "  component: \"/scripts/gun.script\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"sprite\"\n"
+  "  type: \"sprite\"\n"
+  "  data: \"default_animation: \\\"gun\\\"\\n"
+  "material: \\\"/builtins/materials/sprite.material\\\"\\n"
+  "textures {\\n"
+  "  sampler: \\\"texture_sampler\\\"\\n"
+  "  texture: \\\"/assets/gun.atlas\\\"\\n"
+  "}\\n"
+  "\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"bulletfactory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/game objects/bullet.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    z: 1.0
+  }
+}
+embedded_instances {
+  id: "ui"
+  data: "components {\n"
+  "  id: \"panel\"\n"
+  "  component: \"/ui.gui\"\n"
+  "}\n"
+  ""
+}
+embedded_instances {
+  id: "spawner"
+  data: "components {\n"
+  "  id: \"spawner\"\n"
+  "  component: \"/scripts/spawner.script\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"enemyfactory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/game objects/enemy.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+}

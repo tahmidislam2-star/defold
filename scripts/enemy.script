@@ -1,0 +1,15 @@
+local enemy_manager = require("scripts.enemy_manager")
+
+function final(self)
+	enemy_manager.unregister(go.get_id())
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("setup") then
+		print("enemy setup received, color:", message.color)
+		sprite.play_flipbook("#sprite", hash(message.color))
+
+	elseif message_id == hash("pop") or message_id == hash("burst") then
+		go.delete()
+	end
+end

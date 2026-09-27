@@ -1,0 +1,84 @@
+-- gun.script
+
+local RADIUS = 18
+
+local GUN_HALF_SIZE = 12-- half the gun sprite's bounding size, adjust to match your sprite
+
+local BOUND_MIN_X = 12
+local BOUND_MAX_X = 420
+local BOUND_MIN_Y = 20
+local BOUND_MAX_Y = 340
+local COLORS = { "red", "blue", "green", "yellow", "lime", "brown" }
+
+go.property("player_id", msg.url("player"))
+
+local function random_color()
+	return COLORS[math.random(#COLORS)]
+end
+
+function init(self)
+	self.input = vmath.vector3(0, 0, 0)
+	msg.post(".", "acquire_input_focus")
+
+	self.queue = {}
+	for i = 1, 4 do
+		table.insert(self.queue, random_color())
+	end
+	notify_panel(self)
+end
+
+function on_input(self, action_id, action)
+	if action_id == nil and action.x and action.y then
+		self.mouse_x = action.x
+		self.mouse_y = action.y
+	end
+
+	if action_id == hash("SHOOT") and action.pressed then
+		fire_bullet(self, self.current_angle)
+	end
+end
+
+
+function notify_panel(self)
+	msg.post("/ui#panel", "update_queue", {
+		c0 = self.queue[1],
+		c1 = self.queue[2],
+		c2 = self.queue[3],
+	})
+end
+
+function fire_bullet(self, angle)
+	local dir = vmath.vector3(math.cos(angle), math.sin(angle), 0)
+	local spawn_pos = go.get_position()
+	local bullet_id = factory.create("#bulletfactory", spawn_pos, go.get_rotation())
+
+	msg.post(bullet_id, "launch", {
+		color = self.queue[1],
+		direction = dir
+	})
+
+	table.remove(self.queue, 1)
+	table.insert(self.queue, random_color())
+
+	notify_panel(self)
+end
+
+function update(self, dt)
+	local player_pos = go.get_position(self.player_id)
+	local mouse_world = vmath.vector3(self.mouse_x, self.mouse_y, 0)
+
+	local dir = mouse_world - player_pos
+	local angle = math.atan2(dir.y, dir.x)
+	self.current_angle = angle -- ADD THIS LINE
+
+	local offset = vmath.vector3(math.cos(angle) * RADIUS, math.sin(angle) * RADIUS, 0)
+	local new_pos = player_pos + offset
+	new_pos.z = player_pos.z
+
+	-- Clamp gun position to stay within play bounds
+	new_pos.x = math.max(BOUND_MIN_X + GUN_HALF_SIZE, math.min(BOUND_MAX_X - GUN_HALF_SIZE, new_pos.x))
+	new_pos.y = math.max(BOUND_MIN_Y + GUN_HALF_SIZE, math.min(BOUND_MAX_Y - GUN_HALF_SIZE, new_pos.y))
+
+	go.set_position(new_pos)
+	go.set_rotation(vmath.quat_rotation_z(angle))
+end

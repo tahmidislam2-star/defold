@@ -1,0 +1,76 @@
+local enemy_manager = require("scripts.enemy_manager")
+
+local COLORS = { "red", "blue", "green", "yellow", "lime", "brown" }
+
+local BOUND_MIN_X = 16
+local BOUND_MAX_X = 416
+local BOUND_MIN_Y = 20
+local BOUND_MAX_Y = 342
+
+local SPAWN_MARGIN = 120
+local SPAWN_INTERVAL = 2.5
+local ENEMY_SPEED = 40
+
+-- Small hex shapes, each guaranteed fully connected
+local CLUSTER_SHAPES = {
+	[1] = {{0,0}},
+	[2] = {{0,0},{1,0}},
+	[3] = {{0,0},{1,0},{0,1}},
+	[4] = {{0,0},{1,0},{0,1},{1,1}},
+	[5] = {{0,0},{1,0},{-1,0},{0,1},{0,-1}},
+}
+
+go.property("player_id", msg.url("player"))
+
+local function random_color()
+	return COLORS[math.random(#COLORS)]
+end
+
+local function random_spawn_anchor()
+	local edge = math.random(4)
+	local x, y
+	if edge == 1 then
+		x = math.random(BOUND_MIN_X, BOUND_MAX_X); y = BOUND_MAX_Y + SPAWN_MARGIN
+	elseif edge == 2 then
+		x = math.random(BOUND_MIN_X, BOUND_MAX_X); y = BOUND_MIN_Y - SPAWN_MARGIN
+	elseif edge == 3 then
+		x = BOUND_MIN_X - SPAWN_MARGIN; y = math.random(BOUND_MIN_Y, BOUND_MAX_Y)
+	else
+		x = BOUND_MAX_X + SPAWN_MARGIN; y = math.random(BOUND_MIN_Y, BOUND_MAX_Y)
+	end
+	return vmath.vector3(x, y, 0)
+end
+
+local function spawn_wave(self)
+	local anchor = random_spawn_anchor()
+	local player_pos = go.get_position(self.player_id)
+	local velocity = vmath.normalize(player_pos - anchor) * ENEMY_SPEED
+
+	local size = math.random(1, 5)
+	local shape = CLUSTER_SHAPES[size]
+	local cluster_id = enemy_manager.new_cluster_id()
+	enemy_manager.create_cluster(cluster_id, anchor, velocity)
+
+	for _, coord in ipairs(shape) do
+		local offset = enemy_manager.hex_offset(coord[1], coord[2])
+		local pos = anchor + offset
+		local color = random_color()
+		local id = factory.create("#enemyfactory", pos, vmath.quat_rotation_z(0))
+		enemy_manager.register(id, color, cluster_id, offset)
+		msg.post(id, "setup", { color = color })
+	end
+end
+
+function init(self)
+	self.timer = SPAWN_INTERVAL
+end
+
+function update(self, dt)
+	enemy_manager.update_clusters(dt)
+
+	self.timer = self.timer - dt
+	if self.timer <= 0 then
+		self.timer = SPAWN_INTERVAL
+		spawn_wave(self)
+	end
+end

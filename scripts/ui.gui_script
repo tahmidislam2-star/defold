@@ -1,0 +1,7 @@
+function on_message(self, message_id, message, sender)
+	if message_id == hash("update_queue") then
+		gui.play_flipbook(gui.get_node("next1"), hash(message.c0))
+		gui.play_flipbook(gui.get_node("next2"), hash(message.c1))
+		gui.play_flipbook(gui.get_node("next3"), hash(message.c2))
+	end
+end

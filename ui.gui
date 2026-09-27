@@ -1,0 +1,70 @@
+script: "/scripts/ui.gui_script"
+textures {
+  name: "slimes"
+  texture: "/assets/slimes.atlas"
+}
+textures {
+  name: "foreground"
+  texture: "/assets/foreground.atlas"
+}
+nodes {
+  position {
+    x: 320.0
+    y: 180.0
+  }
+  type: TYPE_BOX
+  texture: "foreground/custom_fg"
+  id: "box"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 510.0
+    y: 285.0
+  }
+  scale {
+    x: 2.0
+    y: 2.0
+    z: 2.0
+  }
+  type: TYPE_BOX
+  texture: "slimes/brown"
+  id: "next1"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 574.0
+    y: 285.0
+  }
+  scale {
+    x: 2.0
+    y: 2.0
+    z: 2.0
+  }
+  type: TYPE_BOX
+  texture: "slimes/blue"
+  id: "next3"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 542.0
+    y: 285.0
+  }
+  scale {
+    x: 2.0
+    y: 2.0
+    z: 2.0
+  }
+  type: TYPE_BOX
+  texture: "slimes/lime"
+  id: "next2"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+material: "/builtins/materials/gui.material"
+adjust_reference: ADJUST_REFERENCE_PARENT

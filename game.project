@@ -1,0 +1,26 @@
+[bootstrap]
+main_collection = /main/main.collectionc
+
+[script]
+shared_state = 1
+
+[display]
+width = 640
+height = 360
+high_dpi = 1
+fullscreen = 0
+
+[android]
+input_method = HiddenInputField
+
+[physics]
+gravity_y = -1000.0
+scale = 0.01
+
+[project]
+title = shooter
+
+[graphics]
+default_texture_min_filter = nearest
+default_texture_mag_filter = nearest
+

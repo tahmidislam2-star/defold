@@ -1,0 +1,25 @@
+local enemy_manager = require("scripts.enemy_manager")
+
+go.property("speed", 400)
+
+function init(self)
+	self.velocity = vmath.vector3(0, 0, 0)
+end
+
+function update(self, dt)
+	go.set_position(go.get_position() + self.velocity * dt)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("launch") then
+		self.color = message.color
+		sprite.play_flipbook("#sprite", hash(message.color))
+		self.velocity = message.direction * self.speed
+
+	elseif message_id == hash("collision_response") then
+		if message.group == hash("enemy") then
+			enemy_manager.handle_attach(message.other_id, self.color, go.get_position())
+			go.delete()
+		end
+	end
+end

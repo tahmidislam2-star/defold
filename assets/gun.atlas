@@ -1,0 +1,4 @@
+images {
+  image: "/sprites/gun.png"
+}
+extrude_borders: 2
