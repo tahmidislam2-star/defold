@@ -243,12 +243,22 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 		return -- no match yet, the new slime just joins the cluster
 	end
 
+	-- Size counted AFTER the new slime joins (pre_attach_size + 1) - this is
+	-- what "the cluster" means for the explode rule below.
+	local post_attach_size = pre_attach_size + 1
 
-	if pre_attach_size <= 6 then
-		-- Small cluster: a match takes the whole thing out - every member
-		-- pops, matched or not, including the slime that just attached.
+	if post_attach_size <= 6 then
+		-- Small cluster: a match blows the whole thing apart - every member
+		-- bursts outward (visual only, no more collision) instead of just
+		-- vanishing, including the slime that just attached.
 		for enemy_id in pairs(cluster.members) do
-			msg.post(enemy_id, "pop")
+			local other = M.enemies[enemy_id]
+			local dir = other and other.offset or vmath.vector3(0, 1, 0)
+			if vmath.length_sqr(dir) < 0.0001 then
+				dir = vmath.vector3(math.random() - 0.5, math.random() - 0.5, 0)
+			end
+			dir = vmath.normalize(dir)
+			msg.post(enemy_id, "burst", { direction = dir })
 		end
 		M.clusters[hit_data.cluster_id] = nil
 		return

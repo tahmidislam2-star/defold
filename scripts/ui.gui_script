@@ -3,5 +3,8 @@ function on_message(self, message_id, message, sender)
 		gui.play_flipbook(gui.get_node("next1"), hash(message.c0))
 		gui.play_flipbook(gui.get_node("next2"), hash(message.c1))
 		gui.play_flipbook(gui.get_node("next3"), hash(message.c2))
+
+	elseif message_id == hash("update_wave") then
+		gui.set_text(gui.get_node("wave_label"), "Wave " .. message.wave_number)
 	end
 end

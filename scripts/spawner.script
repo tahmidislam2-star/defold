@@ -10,7 +10,6 @@ local BOUND_MAX_Y = 342
 local SPAWN_MARGIN = 120
 local SPAWN_INTERVAL = 1.2   -- gap between clusters WITHIN a wave
 local NEXT_WAVE_DELAY = 2.0  -- pause after a wave clears, before the next starts
-local ENEMY_SPEED = 40
 
 local CLUSTER_SHAPES = {
 	[1] = {{0,0}},
@@ -18,6 +17,15 @@ local CLUSTER_SHAPES = {
 	[3] = {{0,0},{1,0},{0,1}},
 	[4] = {{0,0},{1,0},{0,1},{1,1}},
 	[5] = {{0,0},{1,0},{-1,0},{0,1},{0,-1}},
+}
+
+-- Bigger clusters feel heavier and move slower; solo slimes dart in fast.
+local CLUSTER_SPEED_BY_SIZE = {
+	[1] = 65,
+	[2] = 56,
+	[3] = 48,
+	[4] = 40,
+	[5] = 32,
 }
 
 go.property("player_id", msg.url("player"))
@@ -51,8 +59,9 @@ local function spawn_cluster(self)
 	local shape = CLUSTER_SHAPES[size]
 	local anchor = random_spawn_anchor()
 	local cluster_id = enemy_manager.new_cluster_id()
+	local speed = CLUSTER_SPEED_BY_SIZE[size]
 
-	enemy_manager.create_cluster(cluster_id, anchor, ENEMY_SPEED)
+	enemy_manager.create_cluster(cluster_id, anchor, speed)
 
 	for _, coord in ipairs(shape) do
 		local offset = enemy_manager.hex_offset(coord[1], coord[2])
@@ -71,7 +80,7 @@ function init(self)
 	self.to_spawn = wave_target(self.wave_number)
 	self.spawn_timer = 0.5
 	self.state = "spawning"
-	print("Wave", self.wave_number, "started - target:", self.to_spawn)
+	msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number })
 end
 
 function update(self, dt)
@@ -94,7 +103,7 @@ function update(self, dt)
 			self.to_spawn = wave_target(self.wave_number)
 			self.spawn_timer = NEXT_WAVE_DELAY
 			self.state = "spawning"
-			print("Wave", self.wave_number, "started - target:", self.to_spawn)
+			msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number })
 		end
 	end
 end

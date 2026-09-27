@@ -71,7 +71,7 @@ embedded_instances {
   id: "ui"
   data: "components {\n"
   "  id: \"panel\"\n"
-  "  component: \"/ui.gui\"\n"
+  "  component: \"/assets/ui.gui\"\n"
   "}\n"
   ""
 }

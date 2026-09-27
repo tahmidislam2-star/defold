@@ -1,7 +1,7 @@
 local enemy_manager = require("scripts.enemy_manager")
 
 local BURST_SPEED = 220
-local BURST_LIFETIME = 1.5 -- safety delete, in case it doesn't naturally leave view
+local BURST_LIFETIME = 0.5 -- safety delete, in case it doesn't naturally leave view
 
 function final(self)
 	if not self.bursting then
@@ -28,10 +28,16 @@ function on_message(self, message_id, message, sender)
 
 	elseif message_id == hash("burst") then
 		self.bursting = true
-		enemy_manager.unregister(go.get_id())     -- leave the cluster/matching system immediately
-		msg.post("#collisionobject", "disable")   -- stop reacting to bullets
+		enemy_manager.unregister(go.get_id())
+		msg.post("#collisionobject", "disable")
 		local dir = message.direction or vmath.vector3(0, 1, 0)
 		self.burst_velocity = dir * BURST_SPEED
 		self.burst_timer = BURST_LIFETIME
+
+		local pos = go.get_position()
+		pos.z = math.random() * 0.0001
+		go.set_position(pos)
+
+		go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 0), go.EASING_LINEAR, BURST_LIFETIME)
 	end
 end
