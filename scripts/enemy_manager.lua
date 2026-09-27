@@ -6,7 +6,14 @@ M.FACTORY_URL = "/spawner#enemyfactory"
 
 local HEX_E1 = vmath.vector3(M.SPACING, 0, 0)
 local HEX_E2 = vmath.vector3(M.SPACING * 0.5, M.SPACING * 0.8660254, 0)
-local ADJACENCY = M.SPACING * 1.15
+
+-- How many pixels of open gap between two slimes still count as "touching"
+-- for match/connectivity purposes. Attach positions aren't snapped to a
+-- perfect hex grid, so real gaps drift a bit past the ideal spacing even
+-- when slimes are visually right next to each other - this just affects the
+-- match/pop logic, not how slimes are drawn or laid out.
+local ADJACENCY_GAP = 6
+local ADJACENCY = M.SPACING + ADJACENCY_GAP
 
 M.clusters = {} -- [cluster_id] = { anchor=, speed=, members = { [enemy_id]=true } }
 M.enemies = {}  -- [enemy_id] = { color=, cluster_id=, offset= }
@@ -174,11 +181,55 @@ local function flood_fill_same_color(cluster, start_id, color)
 	return visited
 end
 
+-- Finds the connected component (physical adjacency, any color) that
+-- `start_id` belongs to, restricted to the ids in `member_set`. Used after a
+-- pop to see what's still structurally attached to what.
+local function connected_component(cluster, member_set, start_id, visited)
+	local component = {}
+	local stack = { start_id }
+	while #stack > 0 do
+		local id = table.remove(stack)
+		if not visited[id] then
+			visited[id] = true
+			component[id] = true
+			local a = M.enemies[id]
+			for other_id in pairs(member_set) do
+				if not visited[other_id] then
+					local other = M.enemies[other_id]
+					if a and other then
+						local dist = vmath.length((cluster.anchor + a.offset) - (cluster.anchor + other.offset))
+						if dist <= ADJACENCY then
+							table.insert(stack, other_id)
+						end
+					end
+				end
+			end
+		end
+	end
+	return component
+end
+
 function M.handle_attach(hit_enemy_id, color, bullet_pos)
+	print("[enemy_manager] handle_attach called, hit_enemy_id=" .. tostring(hit_enemy_id) .. " color=" .. tostring(color))
+
 	local hit_data = M.enemies[hit_enemy_id]
-	if not hit_data then return end
+	if not hit_data then
+		print("[enemy_manager] ABORT: hit_enemy_id has no data in M.enemies")
+		return
+	end
 	local cluster = M.clusters[hit_data.cluster_id]
-	if not cluster then return end
+	if not cluster then
+		print("[enemy_manager] ABORT: hit_data.cluster_id=" .. tostring(hit_data.cluster_id) .. " has no cluster in M.clusters")
+		return
+	end
+
+	-- Size of the cluster the bullet actually hit, BEFORE the new slime
+	-- joins it. This is what "the cluster" means for the small-cluster rule
+	-- below - counting after the attach would let a 3-slime cluster dodge
+	-- the rule just by having grown to 4 the instant the bullet landed.
+	local pre_attach_size = 0
+	for _ in pairs(cluster.members) do pre_attach_size = pre_attach_size + 1 end
+	print("[enemy_manager] pre_attach_size=" .. pre_attach_size)
 
 	local hit_pos = cluster.anchor + hit_data.offset
 	local new_pos = resolve_attach_position(cluster, hit_pos, bullet_pos)
@@ -187,25 +238,74 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 	local new_id = factory.create(M.FACTORY_URL, new_pos, vmath.quat_rotation_z(0))
 	M.register(new_id, color, hit_data.cluster_id, new_offset)
 	msg.post(new_id, "setup", { color = color })
+	print("[enemy_manager] attached new_id=" .. tostring(new_id) .. " at offset dist from hit=" .. vmath.length(new_offset - hit_data.offset))
 
 	local matched = flood_fill_same_color(cluster, new_id, color)
 	local matched_count = 0
 	for _ in pairs(matched) do matched_count = matched_count + 1 end
+	print("[enemy_manager] matched_count=" .. matched_count)
 
-	if matched_count >= 3 then
+	if matched_count < 3 then
+		print("[enemy_manager] no match (need 3+), new slime just joins the cluster")
+		return -- no match yet, the new slime just joins the cluster
+	end
+
+	print("[enemy_manager] MATCH! pre_attach_size=" .. pre_attach_size .. " matched_count=" .. matched_count)
+
+	if pre_attach_size <= 3 then
+		-- Small cluster: a match takes the whole thing out - every member
+		-- pops, matched or not, including the slime that just attached.
+		print("[enemy_manager] small cluster branch: popping ALL members")
 		for enemy_id in pairs(cluster.members) do
-			if matched[enemy_id] then
-				msg.post(enemy_id, "pop")
-			else
-				local other = M.enemies[enemy_id]
-				local dir = other and other.offset or vmath.vector3(0, 1, 0)
-				if vmath.length_sqr(dir) < 0.0001 then
-					dir = vmath.vector3(math.random() - 0.5, math.random() - 0.5, 0)
+			print("[enemy_manager]   posting pop to " .. tostring(enemy_id))
+			msg.post(enemy_id, "pop")
+		end
+		M.clusters[hit_data.cluster_id] = nil
+		return
+	end
+
+	print("[enemy_manager] big cluster branch: popping matched group only")
+	-- Bigger cluster: pop just the matched group. Everything else stays -
+	-- unless the matched group was the only thing holding it to the rest of
+	-- the cluster, in which case it's now floating on its own and pops too.
+	for enemy_id in pairs(matched) do
+		msg.post(enemy_id, "pop")
+	end
+
+	local remaining = {}
+	for enemy_id in pairs(cluster.members) do
+		if not matched[enemy_id] then
+			remaining[enemy_id] = true
+		end
+	end
+
+	if next(remaining) == nil then
+		M.clusters[hit_data.cluster_id] = nil
+		return
+	end
+
+	-- Any connected group of 2+ survivors is still holding itself together
+	-- and stays put. A survivor left completely on its own (nothing else
+	-- still touching it) had nothing supporting it except the slimes that
+	-- just popped, so it pops too - even if it's the only thing left.
+	local visited = {}
+	local anything_survived = false
+	for start_id in pairs(remaining) do
+		if not visited[start_id] then
+			local component = connected_component(cluster, remaining, start_id, visited)
+			local size = 0
+			for _ in pairs(component) do size = size + 1 end
+			if size <= 1 then
+				for enemy_id in pairs(component) do
+					msg.post(enemy_id, "pop")
 				end
-				dir = vmath.normalize(dir)
-				msg.post(enemy_id, "burst", { direction = dir })
+			else
+				anything_survived = true
 			end
 		end
+	end
+
+	if not anything_survived then
 		M.clusters[hit_data.cluster_id] = nil
 	end
 end

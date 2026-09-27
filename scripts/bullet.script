@@ -2,12 +2,77 @@ local enemy_manager = require("scripts.enemy_manager")
 
 go.property("speed", 400)
 
+local BOUND_MIN_X = 12
+local BOUND_MAX_X = 420
+local BOUND_MIN_Y = 20
+local BOUND_MAX_Y = 340
+
+local BULLET_RADIUS = 7.5 -- matches the collisionobject sphere shape in bullet.go
+
+local MAX_BOUNCES = 2
+local FADE_DURATION = 0.4
+
 function init(self)
 	self.velocity = vmath.vector3(0, 0, 0)
+	self.bounces = 0
+	self.fading = false
+	self.hit = false
+end
+
+-- Reflects the bullet off the play-area walls, real-2D-object style: whichever
+-- axis is out of bounds gets its velocity flipped (angle of incidence = angle
+-- of reflection), and the position is clamped back inside so it doesn't
+-- visually poke through the wall.
+local function bounce_off_bounds(self, pos)
+	local bounced = false
+
+	local min_x = BOUND_MIN_X + BULLET_RADIUS
+	local max_x = BOUND_MAX_X - BULLET_RADIUS
+	local min_y = BOUND_MIN_Y + BULLET_RADIUS
+	local max_y = BOUND_MAX_Y - BULLET_RADIUS
+
+	if pos.x < min_x then
+		pos.x = min_x
+		self.velocity.x = -self.velocity.x
+		bounced = true
+	elseif pos.x > max_x then
+		pos.x = max_x
+		self.velocity.x = -self.velocity.x
+		bounced = true
+	end
+
+	if pos.y < min_y then
+		pos.y = min_y
+		self.velocity.y = -self.velocity.y
+		bounced = true
+	elseif pos.y > max_y then
+		pos.y = max_y
+		self.velocity.y = -self.velocity.y
+		bounced = true
+	end
+
+	return pos, bounced
+end
+
+local function start_fade(self)
+	self.fading = true
+	go.animate("#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_LINEAR, FADE_DURATION, 0, function()
+		go.delete()
+	end)
 end
 
 function update(self, dt)
-	go.set_position(go.get_position() + self.velocity * dt)
+	local pos = go.get_position() + self.velocity * dt
+	local bounced
+	pos, bounced = bounce_off_bounds(self, pos)
+	go.set_position(pos)
+
+	if bounced and not self.fading then
+		self.bounces = self.bounces + 1
+		if self.bounces >= MAX_BOUNCES then
+			start_fade(self)
+		end
+	end
 end
 
 function on_message(self, message_id, message, sender)
@@ -17,7 +82,14 @@ function on_message(self, message_id, message, sender)
 		self.velocity = message.direction * self.speed
 
 	elseif message_id == hash("collision_response") then
+		-- A bullet that overlaps two enemies in the same physics step gets a
+		-- collision_response for each one before go.delete() actually takes
+		-- effect (deletion is deferred to end of frame). Only honor the first.
+		if self.hit then
+			return
+		end
 		if message.group == hash("enemy") then
+			self.hit = true
 			enemy_manager.handle_attach(message.other_id, self.color, go.get_position())
 			go.delete()
 		end
