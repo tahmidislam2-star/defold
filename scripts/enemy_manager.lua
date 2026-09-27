@@ -210,16 +210,13 @@ local function connected_component(cluster, member_set, start_id, visited)
 end
 
 function M.handle_attach(hit_enemy_id, color, bullet_pos)
-	print("[enemy_manager] handle_attach called, hit_enemy_id=" .. tostring(hit_enemy_id) .. " color=" .. tostring(color))
 
 	local hit_data = M.enemies[hit_enemy_id]
 	if not hit_data then
-		print("[enemy_manager] ABORT: hit_enemy_id has no data in M.enemies")
 		return
 	end
 	local cluster = M.clusters[hit_data.cluster_id]
 	if not cluster then
-		print("[enemy_manager] ABORT: hit_data.cluster_id=" .. tostring(hit_data.cluster_id) .. " has no cluster in M.clusters")
 		return
 	end
 
@@ -229,7 +226,6 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 	-- the rule just by having grown to 4 the instant the bullet landed.
 	local pre_attach_size = 0
 	for _ in pairs(cluster.members) do pre_attach_size = pre_attach_size + 1 end
-	print("[enemy_manager] pre_attach_size=" .. pre_attach_size)
 
 	local hit_pos = cluster.anchor + hit_data.offset
 	local new_pos = resolve_attach_position(cluster, hit_pos, bullet_pos)
@@ -238,33 +234,26 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 	local new_id = factory.create(M.FACTORY_URL, new_pos, vmath.quat_rotation_z(0))
 	M.register(new_id, color, hit_data.cluster_id, new_offset)
 	msg.post(new_id, "setup", { color = color })
-	print("[enemy_manager] attached new_id=" .. tostring(new_id) .. " at offset dist from hit=" .. vmath.length(new_offset - hit_data.offset))
 
 	local matched = flood_fill_same_color(cluster, new_id, color)
 	local matched_count = 0
 	for _ in pairs(matched) do matched_count = matched_count + 1 end
-	print("[enemy_manager] matched_count=" .. matched_count)
 
 	if matched_count < 3 then
-		print("[enemy_manager] no match (need 3+), new slime just joins the cluster")
 		return -- no match yet, the new slime just joins the cluster
 	end
 
-	print("[enemy_manager] MATCH! pre_attach_size=" .. pre_attach_size .. " matched_count=" .. matched_count)
 
-	if pre_attach_size <= 3 then
+	if pre_attach_size <= 6 then
 		-- Small cluster: a match takes the whole thing out - every member
 		-- pops, matched or not, including the slime that just attached.
-		print("[enemy_manager] small cluster branch: popping ALL members")
 		for enemy_id in pairs(cluster.members) do
-			print("[enemy_manager]   posting pop to " .. tostring(enemy_id))
 			msg.post(enemy_id, "pop")
 		end
 		M.clusters[hit_data.cluster_id] = nil
 		return
 	end
 
-	print("[enemy_manager] big cluster branch: popping matched group only")
 	-- Bigger cluster: pop just the matched group. Everything else stays -
 	-- unless the matched group was the only thing holding it to the rest of
 	-- the cluster, in which case it's now floating on its own and pops too.
