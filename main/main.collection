@@ -40,7 +40,6 @@ embedded_instances {
   position {
     x: 208.0
     y: 179.0
-    z: 1.0
   }
 }
 embedded_instances {
@@ -67,9 +66,6 @@ embedded_instances {
   "\"\n"
   "}\n"
   ""
-  position {
-    z: 1.0
-  }
 }
 embedded_instances {
   id: "ui"
