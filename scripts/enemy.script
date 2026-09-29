@@ -1,10 +1,14 @@
 local enemy_manager = require("scripts.enemy_manager")
 
 local BURST_SPEED = 220
-local BURST_LIFETIME = 0.5 -- safety delete, in case it doesn't naturally leave view
+local BURST_LIFETIME = 1.5
+
+local FREEZE_DURATION = 3.0
+local BLINK_DURATION = 0.15
+local REJOIN_SPEED = 50 -- speed once it resumes chasing solo after a freeze
 
 function final(self)
-	if not self.bursting then
+	if not self.left_cluster then
 		enemy_manager.unregister(go.get_id())
 	end
 end
@@ -16,28 +20,55 @@ function update(self, dt)
 		if self.burst_timer <= 0 then
 			go.delete()
 		end
+		return
+	end
+
+	if self.frozen then
+		self.freeze_timer = self.freeze_timer - dt
+		if self.freeze_timer <= 0 then
+			self.frozen = false
+			go.cancel_animations("#sprite", "tint")
+			go.set("#sprite", "tint", vmath.vector4(1, 1, 1, 1))
+			msg.post("#collisionobject", "enable")
+
+			-- Rejoin the matching system as a fresh solo cluster so it's a
+			-- normal, shootable enemy again while it chases the player.
+			local cluster_id = enemy_manager.new_cluster_id()
+			enemy_manager.create_cluster(cluster_id, go.get_position(), REJOIN_SPEED)
+			enemy_manager.register(go.get_id(), self.color, cluster_id, vmath.vector3(0, 0, 0))
+			self.left_cluster = false
+		end
 	end
 end
 
 function on_message(self, message_id, message, sender)
 	if message_id == hash("setup") then
-		sprite.play_flipbook("#sprite", hash(message.color))
+		self.color = message.color
+		sprite.play_flipbook("#sprite", hash(self.color))
 
 	elseif message_id == hash("pop") then
 		go.delete()
 
 	elseif message_id == hash("burst") then
 		self.bursting = true
+		self.left_cluster = true
 		enemy_manager.unregister(go.get_id())
 		msg.post("#collisionobject", "disable")
 		local dir = message.direction or vmath.vector3(0, 1, 0)
 		self.burst_velocity = dir * BURST_SPEED
 		self.burst_timer = BURST_LIFETIME
-
 		local pos = go.get_position()
 		pos.z = math.random() * 0.0001
 		go.set_position(pos)
-
 		go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 0), go.EASING_LINEAR, BURST_LIFETIME)
+
+	elseif message_id == hash("freeze") then
+		if self.bursting or self.frozen then return end
+		self.left_cluster = true
+		enemy_manager.unregister(go.get_id())
+		msg.post("#collisionobject", "disable")
+		self.frozen = true
+		self.freeze_timer = FREEZE_DURATION
+		go.animate("#sprite", "tint.w", go.PLAYBACK_LOOP_PINGPONG, 0.2, go.EASING_LINEAR, BLINK_DURATION)
 	end
 end

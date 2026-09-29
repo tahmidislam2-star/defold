@@ -11,6 +11,10 @@ textures {
   name: "foreground"
   texture: "/assets/foreground.atlas"
 }
+textures {
+  name: "heart"
+  texture: "/assets/heart.atlas"
+}
 nodes {
   position {
     x: 320.0
@@ -92,7 +96,7 @@ nodes {
 nodes {
   position {
     x: 545.0
-    y: 288.0
+    y: 129.0
   }
   scale {
     x: 1.5
@@ -107,6 +111,140 @@ nodes {
   ""
   font: "default"
   id: "score_label"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 510.0
+    y: 254.0
+  }
+  type: TYPE_BOX
+  texture: "heart/heart"
+  id: "heart1"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 574.0
+    y: 254.0
+  }
+  type: TYPE_BOX
+  texture: "heart/heart"
+  id: "heart3"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 542.0
+    y: 254.0
+  }
+  type: TYPE_BOX
+  texture: "heart/heart"
+  id: "heart2"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 320.0
+    y: 180.0
+  }
+  scale {
+    y: 2.0
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  color {
+    x: 0.7019608
+    y: 0.5019608
+    z: 0.7019608
+  }
+  type: TYPE_BOX
+  id: "game_over_group"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+  enabled: false
+}
+nodes {
+  scale {
+    y: 1.0E-6
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  color {
+    x: 0.7019608
+    y: 0.5019608
+    z: 0.7019608
+  }
+  type: TYPE_BOX
+  id: "overlay_box  "
+  parent: "game_over_group"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    y: 39.5
+  }
+  scale {
+    x: 2.0
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "Game Over"
+  font: "default"
+  id: "game_over_text  "
+  parent: "game_over_group"
+  inherit_alpha: true
+}
+nodes {
+  scale {
+    x: 0.5
+    y: 0.2
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  color {
+    x: 0.8
+    y: 0.8
+    z: 0.8
+  }
+  type: TYPE_BOX
+  id: "restart_button"
+  parent: "game_over_group"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  scale {
+    x: 2.0
+    y: 2.5
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  color {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  type: TYPE_TEXT
+  text: "Restart"
+  font: "default"
+  id: "restart_label"
+  parent: "restart_button"
   inherit_alpha: true
 }
 material: "/builtins/materials/gui.material"

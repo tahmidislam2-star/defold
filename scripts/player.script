@@ -1,5 +1,7 @@
 -- player.script
 
+local game_state = require("scripts.game_state")
+
 local SPEED = 200
 
 local BOUND_MIN_X = 16
@@ -13,10 +15,13 @@ function init(self)
 	self.move_down = false
 	self.move_left = false
 	self.move_right = false
+	self.hearts = 3
 	msg.post(".", "acquire_input_focus")
 end
 
 function on_input(self, action_id, action)
+	if game_state.game_over then return end
+
 	if action_id == hash("MOVE_UP") then
 		if action.pressed then self.move_up = true end
 		if action.released then self.move_up = false end
@@ -33,6 +38,8 @@ function on_input(self, action_id, action)
 end
 
 function update(self, dt)
+	if game_state.game_over then return end
+
 	local x = (self.move_right and 1 or 0) - (self.move_left and 1 or 0)
 	local y = (self.move_up and 1 or 0) - (self.move_down and 1 or 0)
 	local input = vmath.vector3(x, y, 0)
@@ -46,5 +53,21 @@ function update(self, dt)
 		pos.y = math.max(BOUND_MIN_Y + RADIUS, math.min(BOUND_MAX_Y - RADIUS, pos.y))
 
 		go.set_position(pos)
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("collision_response") then
+		if game_state.game_over then return end
+		if message.other_group == hash("enemy") then
+			self.hearts = self.hearts - 1
+			msg.post("/ui#panel", "lose_heart", {})
+			msg.post(message.other_id, "freeze")
+
+			if self.hearts <= 0 then
+				game_state.game_over = true
+				msg.post("/ui#panel", "show_game_over", {})
+			end
+		end
 	end
 end

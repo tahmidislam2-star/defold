@@ -10,6 +10,8 @@ local BOUND_MAX_Y = 342
 local SPAWN_MARGIN = 120
 local SPAWN_INTERVAL = 1.2   -- gap between clusters WITHIN a wave
 local NEXT_WAVE_DELAY = 2.0  -- pause after a wave clears, before the next starts
+local enemy_manager = require("scripts.enemy_manager")
+local game_state = require("scripts.game_state")
 
 local CLUSTER_SHAPES = {
 	[1] = {{0,0}},
@@ -88,6 +90,7 @@ function init(self)
 end
 
 function update(self, dt)
+	if game_state.game_over then return end
 	local player_pos = go.get_position(self.player_id)
 	enemy_manager.update_clusters(dt, player_pos)
 
