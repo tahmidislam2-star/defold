@@ -9,6 +9,8 @@ local BOUND_MAX_X = 416
 local BOUND_MIN_Y = 20
 local BOUND_MAX_Y = 342
 local RADIUS = 8
+local INVULN_DURATION = 1.0
+local HITSTOP_DURATION = 0.08 -- bonus: brief freeze-frame on hit
 
 function init(self)
 	self.move_up = false
@@ -16,9 +18,10 @@ function init(self)
 	self.move_left = false
 	self.move_right = false
 	self.hearts = 3
+	self.invulnerable = false
+	self.invuln_timer = 0
 	msg.post(".", "acquire_input_focus")
 end
-
 function on_input(self, action_id, action)
 	if game_state.game_over then return end
 
@@ -39,7 +42,15 @@ end
 
 function update(self, dt)
 	if game_state.game_over then return end
-
+	if self.invulnerable then
+		self.invuln_timer = self.invuln_timer - dt
+		if self.invuln_timer <= 0 then
+			self.invulnerable = false
+			go.cancel_animations("#sprite", "tint")
+			go.set("#sprite", "tint", vmath.vector4(1, 1, 1, 1))
+		end
+	end
+	
 	local x = (self.move_right and 1 or 0) - (self.move_left and 1 or 0)
 	local y = (self.move_up and 1 or 0) - (self.move_down and 1 or 0)
 	local input = vmath.vector3(x, y, 0)
@@ -58,11 +69,17 @@ end
 
 function on_message(self, message_id, message, sender)
 	if message_id == hash("collision_response") then
-		if game_state.game_over then return end
+		if game_state.game_over or self.invulnerable then return end
 		if message.other_group == hash("enemy") then
 			self.hearts = self.hearts - 1
 			msg.post("/ui#panel", "lose_heart", {})
 			msg.post(message.other_id, "freeze")
+
+			self.invulnerable = true
+			self.invuln_timer = INVULN_DURATION
+			go.animate("#sprite", "tint.w", go.PLAYBACK_LOOP_PINGPONG, 0.3, go.EASING_LINEAR, 0.1)
+
+			game_state.hitstop_timer = HITSTOP_DURATION
 
 			if self.hearts <= 0 then
 				game_state.game_over = true

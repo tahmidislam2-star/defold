@@ -1,9 +1,9 @@
 local heart_nodes = { "heart1", "heart2", "heart3" }
 
 local function drop_heart(node)
-	gui.animate(node, gui.PROP_ROTATION, vmath.vector3(0, 0, 15), gui.EASING_INOUTSINE, 0.08, 0, function()
-		gui.animate(node, gui.PROP_ROTATION, vmath.vector3(0, 0, -15), gui.EASING_INOUTSINE, 0.08, 0, function()
-			gui.animate(node, gui.PROP_ROTATION, vmath.vector3(0, 0, 0), gui.EASING_INOUTSINE, 0.08, 0, function()
+	gui.animate(node, gui.PROP_EULER, vmath.vector3(0, 0, 15), gui.EASING_INOUTSINE, 0.08, 0, function()
+		gui.animate(node, gui.PROP_EULER, vmath.vector3(0, 0, -15), gui.EASING_INOUTSINE, 0.08, 0, function()
+			gui.animate(node, gui.PROP_EULER, vmath.vector3(0, 0, 0), gui.EASING_INOUTSINE, 0.08, 0, function()
 				local pos = gui.get_position(node)
 				gui.animate(node, gui.PROP_POSITION, pos - vmath.vector3(0, 60, 0), gui.EASING_INBACK, 0.4)
 				gui.animate(node, "color.w", 0, gui.EASING_LINEAR, 0.4)

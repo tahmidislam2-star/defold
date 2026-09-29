@@ -91,6 +91,12 @@ end
 
 function update(self, dt)
 	if game_state.game_over then return end
+
+	if game_state.hitstop_timer > 0 then
+		game_state.hitstop_timer = game_state.hitstop_timer - dt
+		return
+	end
+
 	local player_pos = go.get_position(self.player_id)
 	enemy_manager.update_clusters(dt, player_pos)
 
