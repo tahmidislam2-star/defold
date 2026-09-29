@@ -77,7 +77,7 @@ end
 
 function init(self)
 	-- if defos then
-	-- 	defos.set_cursor_visible(false)
+	-- 	defos.set_cursor_visible(false) #turn on later- mouse hide
 	-- end
 	self.wave_number = 1
 	self.to_spawn = wave_target(self.wave_number)
