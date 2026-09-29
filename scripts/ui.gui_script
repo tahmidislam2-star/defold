@@ -6,5 +6,7 @@ function on_message(self, message_id, message, sender)
 
 	elseif message_id == hash("update_wave") then
 		gui.set_text(gui.get_node("wave_label"), "Wave " .. message.wave_number)
+	elseif message_id == hash("update_score") then
+		gui.set_text(gui.get_node("score_label"), string.format("%04d", message.score))
 	end
 end

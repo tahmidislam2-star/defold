@@ -19,6 +19,7 @@ scale = 0.01
 
 [project]
 title = shooter
+dependencies#0 = https://github.com/subsoap/defos/archive/refs/heads/master.zip
 
 [graphics]
 default_texture_min_filter = nearest

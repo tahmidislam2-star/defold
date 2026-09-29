@@ -3,6 +3,9 @@ local M = {}
 M.RADIUS = 9
 M.SPACING = M.RADIUS * 2
 M.FACTORY_URL = "/spawner#enemyfactory"
+M.POINTS_PER_SLIME = 5
+M.CLEAR_MULTIPLIER = 3
+M.score = 0
 
 local HEX_E1 = vmath.vector3(M.SPACING, 0, 0)
 local HEX_E2 = vmath.vector3(M.SPACING * 0.5, M.SPACING * 0.8660254, 0)
@@ -208,6 +211,23 @@ local function connected_component(cluster, member_set, start_id, visited)
 	end
 	return component
 end
+local function push_score()
+	msg.post("/ui#panel", "update_score", { score = M.score })
+end
+
+function M.reset_score()
+	M.score = 0
+	push_score()
+end
+
+local function award_points(slime_count, whole_cluster)
+	local per_slime = M.POINTS_PER_SLIME
+	if whole_cluster then
+		per_slime = per_slime * M.CLEAR_MULTIPLIER
+	end
+	M.score = M.score + slime_count * per_slime
+	push_score()
+end
 
 function M.handle_attach(hit_enemy_id, color, bullet_pos)
 
@@ -248,9 +268,6 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 	local post_attach_size = pre_attach_size + 1
 
 	if post_attach_size <= 6 then
-		-- Small cluster: a match blows the whole thing apart - every member
-		-- bursts outward (visual only, no more collision) instead of just
-		-- vanishing, including the slime that just attached.
 		for enemy_id in pairs(cluster.members) do
 			local other = M.enemies[enemy_id]
 			local dir = other and other.offset or vmath.vector3(0, 1, 0)
@@ -260,13 +277,12 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 			dir = vmath.normalize(dir)
 			msg.post(enemy_id, "burst", { direction = dir })
 		end
+		award_points(post_attach_size, true)
 		M.clusters[hit_data.cluster_id] = nil
 		return
 	end
-
-	-- Bigger cluster: pop just the matched group. Everything else stays -
-	-- unless the matched group was the only thing holding it to the rest of
-	-- the cluster, in which case it's now floating on its own and pops too.
+	-- Bigger cluster: pop just the matched group; lone survivors pop too.
+	local popped_count = matched_count
 	for enemy_id in pairs(matched) do
 		msg.post(enemy_id, "pop")
 	end
@@ -280,13 +296,10 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 
 	if next(remaining) == nil then
 		M.clusters[hit_data.cluster_id] = nil
+		award_points(popped_count, true) -- matched group was the whole cluster
 		return
 	end
 
-	-- Any connected group of 2+ survivors is still holding itself together
-	-- and stays put. A survivor left completely on its own (nothing else
-	-- still touching it) had nothing supporting it except the slimes that
-	-- just popped, so it pops too - even if it's the only thing left.
 	local visited = {}
 	local anything_survived = false
 	for start_id in pairs(remaining) do
@@ -297,6 +310,7 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 			if size <= 1 then
 				for enemy_id in pairs(component) do
 					msg.post(enemy_id, "pop")
+					popped_count = popped_count + 1
 				end
 			else
 				anything_survived = true
@@ -307,6 +321,7 @@ function M.handle_attach(hit_enemy_id, color, bullet_pos)
 	if not anything_survived then
 		M.clusters[hit_data.cluster_id] = nil
 	end
+	award_points(popped_count, not anything_survived)
 end
 
 return M

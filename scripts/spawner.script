@@ -21,11 +21,11 @@ local CLUSTER_SHAPES = {
 
 -- Bigger clusters feel heavier and move slower; solo slimes dart in fast.
 local CLUSTER_SPEED_BY_SIZE = {
-	[1] = 65,
-	[2] = 56,
-	[3] = 48,
-	[4] = 40,
-	[5] = 32,
+	[1] = 50,
+	[2] = 45,
+	[3] = 40,
+	[4] = 32,
+	[5] = 28,
 }
 
 go.property("player_id", msg.url("player"))
@@ -76,11 +76,15 @@ local function spawn_cluster(self)
 end
 
 function init(self)
+	-- if defos then
+	-- 	defos.set_cursor_visible(false)
+	-- end
 	self.wave_number = 1
 	self.to_spawn = wave_target(self.wave_number)
 	self.spawn_timer = 0.5
 	self.state = "spawning"
 	msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number })
+	enemy_manager.reset_score()
 end
 
 function update(self, dt)

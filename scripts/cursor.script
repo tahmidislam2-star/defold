@@ -1,0 +1,23 @@
+local BOUND_MIN_X = 16
+local BOUND_MAX_X = 416
+local BOUND_MIN_Y = 20
+local BOUND_MAX_Y = 342
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.mouse_x = 0
+	self.mouse_y = 0
+end
+
+function on_input(self, action_id, action)
+	if action_id == nil and action.x and action.y then
+		self.mouse_x = action.x
+		self.mouse_y = action.y
+	end
+end
+
+function update(self, dt)
+	local x = math.max(BOUND_MIN_X, math.min(BOUND_MAX_X, self.mouse_x))
+	local y = math.max(BOUND_MIN_Y, math.min(BOUND_MAX_Y, self.mouse_y))
+	go.set_position(vmath.vector3(x, y, 0))
+end

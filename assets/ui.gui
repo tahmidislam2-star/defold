@@ -89,5 +89,25 @@ nodes {
   id: "wave_label"
   inherit_alpha: true
 }
+nodes {
+  position {
+    x: 545.0
+    y: 288.0
+  }
+  scale {
+    x: 1.5
+    y: 1.5
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "0000\n"
+  ""
+  font: "default"
+  id: "score_label"
+  inherit_alpha: true
+}
 material: "/builtins/materials/gui.material"
 adjust_reference: ADJUST_REFERENCE_PARENT
