@@ -111,6 +111,12 @@ embedded_instances {
   "  data: \"prototype: \\\"/game objects/enemy.go\\\"\\n"
   "\"\n"
   "}\n"
+  "embedded_components {\n"
+  "  id: \"bossfactory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/game objects/boss.go\\\"\\n"
+  "\"\n"
+  "}\n"
   ""
 }
 embedded_instances {
