@@ -75,6 +75,15 @@ function M.mark_boss(cluster_id, original_size)
 	end
 end
 
+-- Marks a cluster as a boss-spawned hazard ring: bullets are absorbed by it
+-- (no attach / match logic) and it is never nudged by cluster separation.
+function M.mark_ring(cluster_id)
+	local cluster = M.clusters[cluster_id]
+	if cluster then
+		cluster.is_ring = true
+	end
+end
+
 function M.cluster_member_count(cluster_id)
 	local cluster = M.clusters[cluster_id]
 	if not cluster then return 0 end
@@ -140,10 +149,12 @@ local function separate_clusters()
 	for _ = 1, SEPARATION_ITERATIONS do
 		local list = {}
 		for cluster_id, cluster in pairs(M.clusters) do
-			for enemy_id in pairs(cluster.members) do
-				local data = M.enemies[enemy_id]
-				if data then
-					table.insert(list, { cluster_id = cluster_id, pos = cluster.anchor + data.offset })
+			if not cluster.is_boss and not cluster.is_ring then
+				for enemy_id in pairs(cluster.members) do
+					local data = M.enemies[enemy_id]
+					if data then
+						table.insert(list, { cluster_id = cluster_id, pos = cluster.anchor + data.offset })
+					end
 				end
 			end
 		end
@@ -214,7 +225,7 @@ for _, cluster in pairs(M.clusters) do
 end
 
 separate_clusters()
-update_spins(dt)
+update_rotations(dt)
 
 for _, cluster in pairs(M.clusters) do
 	for enemy_id in pairs(cluster.members) do
@@ -336,6 +347,9 @@ end
 local cluster = M.clusters[hit_data.cluster_id]
 if not cluster then
 	return
+end
+if cluster.is_ring then
+	return -- boss hazard ring: the bullet is absorbed, nothing attaches
 end
 
 -- Size of the cluster the bullet actually hit, BEFORE the new slime

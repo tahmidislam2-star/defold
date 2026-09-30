@@ -3,55 +3,156 @@ local game_state = require("scripts.game_state")
 
 local RING_HEX_RADIUS = 4 -- hex "rings" outward from center -> ~61 slimes
 local DEFEAT_THRESHOLD = 0.15 -- boss is defeated once remaining <= this fraction of its starting size
-local BOSS_SPEED = 0 -- 0 = stationary; bump this for a slow drift toward the player
 
 local COLORS = { "red", "blue", "green", "yellow", "lime", "brown" }
 
+-- ---------------------------------------------------------------- movement
+local START_X = 216
+local START_Y = 460 -- well above the screen, so the whole body starts off-screen
+local REST_Y = 300 -- where the boss parks at the top of the screen
+local ENTRANCE_SPEED = 60 -- px/sec while flying in
+
+local PATROL_SPEED = 40 -- px/sec left/right once parked (0 = sit still)
+local PATROL_MIN_X = 95 -- keeps the body (about 72px wide each side) inside 16..416
+local PATROL_MAX_X = 337
+
+-- ------------------------------------------------------------ normal throw
 local THROW_COOLDOWN = 2.5
 local THROW_TELEGRAPH = 0.6
--- The actual throw speed lives in enemy.script's THROW_SPEED constant (it's
--- the thrown slime's own script that flies it) - kept in sync manually.
+-- Normal throws use THROW_SPEED from enemy.script.
 
-local SPIN_INTERVAL = 12.0
-local SPIN_RING_COUNT = 16
-local SPIN_GAP_EVERY = 4 -- every 4th ring slot is left empty, making a visible gap
-local SPIN_RADIUS = 70
-local SPIN_ANGULAR_SPEED = math.pi -- radians/sec
-local SPIN_DURATION = 3.0
+-- ------------------------------------------------------------ rapid state
+local RAPID_COOLDOWN = 11.0 -- time between rapid states
+local RAPID_DURATION = 3.0
+local RAPID_SHOT_INTERVAL = 0.25
+local RAPID_TELEGRAPH = 0.2
+local RAPID_THROW_SPEED = 190
+local RAPID_PATROL_SPEED = 80 -- boss strafes faster while firing
+
+-- ------------------------------------------------- chain around the player
+local RING_COOLDOWN = 14.0
+local RING_SLOTS = 20 -- slots around the circle
+local RING_GAP_PERIOD = 10 -- a gap starts every 10 slots (so 2 gaps)
+local RING_GAP_SLOTS = 2 -- empty slots per gap
+local RING_RADIUS = 55
+local RING_FLICKER_TIME = 1.2 -- harmless, flickering, not rotating yet
+local RING_DURATION = 4.0 -- rotating (and dangerous) time before it bursts
+local RING_ANGULAR_SPEED = 1.6 -- radians/sec
 
 local function random_color()
 	return COLORS[math.random(#COLORS)]
 end
 
-local function do_throw_attack(self)
-	local ids = enemy_manager.get_cluster_member_ids(self.cluster_id)
-	if #ids == 0 then return end
+-- ------------------------------------------------------------------ throws
+local function queue_throw(self, telegraph, speed)
+	local candidates = {}
+	for _, id in ipairs(enemy_manager.get_cluster_member_ids(self.cluster_id)) do
+		if not self.pending[id] then
+			table.insert(candidates, id)
+		end
+	end
+	if #candidates == 0 then return end
 
-	local target_id = ids[math.random(#ids)]
-	msg.post(target_id, "telegraph", { duration = THROW_TELEGRAPH })
-
-	timer.delay(THROW_TELEGRAPH, false, function()
-		msg.post(target_id, "throw", {})
-	end)
+	local id = candidates[math.random(#candidates)]
+	self.pending[id] = true
+	msg.post(id, "telegraph", { duration = telegraph })
+	table.insert(self.throws, { id = id, t = telegraph, speed = speed })
 end
 
-local function do_spin_attack(self)
-	local ids = enemy_manager.get_cluster_member_ids(self.cluster_id)
-	if #ids == 0 then return end
+local function update_throws(self, dt)
+	local i = 1
+	while i <= #self.throws do
+		local th = self.throws[i]
+		th.t = th.t - dt
+		if th.t <= 0 then
+			self.pending[th.id] = nil
+			-- skip if the player popped / froze it during the telegraph
+			if enemy_manager.enemies[th.id] then
+				msg.post(th.id, "throw", { speed = th.speed })
+			end
+			table.remove(self.throws, i)
+		else
+			i = i + 1
+		end
+	end
+end
 
-	local ring_ids = {}
-	for i = 1, SPIN_RING_COUNT do
-		if (i % SPIN_GAP_EVERY) ~= 0 then -- skip every Nth slot to leave a gap
-			local id = ids[((i - 1) % #ids) + 1]
-			table.insert(ring_ids, id)
+-- -------------------------------------------------------------------- ring
+local function spawn_ring(self)
+	local center = go.get_position("/player")
+	center.z = 0
+
+	local cluster_id = enemy_manager.new_cluster_id()
+	enemy_manager.create_cluster(cluster_id, center, 0) -- speed 0: stays where it spawned
+	enemy_manager.mark_ring(cluster_id)
+
+	local color = random_color()
+	for i = 0, RING_SLOTS - 1 do
+		if (i % RING_GAP_PERIOD) >= RING_GAP_SLOTS then
+			local angle = i * 2 * math.pi / RING_SLOTS
+			local offset = vmath.vector3(math.cos(angle) * RING_RADIUS, math.sin(angle) * RING_RADIUS, 0)
+			local id = factory.create(enemy_manager.FACTORY_URL, center + offset, vmath.quat_rotation_z(0))
+			enemy_manager.register(id, color, cluster_id, offset)
+			msg.post(id, "setup", { color = color })
+			msg.post(id, "ring_flicker")
 		end
 	end
 
-	enemy_manager.start_spin(self.cluster_id, ring_ids, SPIN_RADIUS, SPIN_ANGULAR_SPEED, SPIN_DURATION)
+	self.ring = {
+		cluster_id = cluster_id,
+		phase = "flicker",
+		timer = RING_FLICKER_TIME,
+		spin = RING_ANGULAR_SPEED * (math.random() < 0.5 and -1 or 1),
+	}
 end
 
+local function burst_ring(self)
+	local ring = self.ring
+	if not ring then return end
+
+	enemy_manager.set_cluster_rotation(ring.cluster_id, 0)
+	for _, id in ipairs(enemy_manager.get_cluster_member_ids(ring.cluster_id)) do
+		local data = enemy_manager.enemies[id]
+		local dir = vmath.vector3(0, 1, 0)
+		if data then
+			dir = vmath.vector3(data.offset.x, data.offset.y, 0) -- outward from the ring center
+			if vmath.length_sqr(dir) < 0.0001 then
+				dir = vmath.vector3(0, 1, 0)
+			end
+		end
+		msg.post(id, "burst", { direction = vmath.normalize(dir) })
+	end
+	self.ring = nil
+end
+
+local function update_ring(self, dt)
+	local ring = self.ring
+	if not ring then return end
+
+	if enemy_manager.cluster_member_count(ring.cluster_id) == 0 then
+		self.ring = nil -- every slime already gone
+		return
+	end
+
+	ring.timer = ring.timer - dt
+	if ring.timer > 0 then return end
+
+	if ring.phase == "flicker" then
+		for _, id in ipairs(enemy_manager.get_cluster_member_ids(ring.cluster_id)) do
+			msg.post(id, "ring_arm")
+		end
+		enemy_manager.set_cluster_rotation(ring.cluster_id, ring.spin)
+		ring.phase = "spin"
+		ring.timer = RING_DURATION
+	else
+		burst_ring(self)
+	end
+end
+
+-- ------------------------------------------------------------------ defeat
 local function trigger_defeat(self)
 	self.defeated = true
+	burst_ring(self)
 	local ids = enemy_manager.get_cluster_member_ids(self.cluster_id)
 	for _, id in ipairs(ids) do
 		local dir = vmath.vector3(math.random() - 0.5, math.random() - 0.5, 0)
@@ -65,15 +166,39 @@ local function trigger_defeat(self)
 	go.delete()
 end
 
+-- ---------------------------------------------------------------- movement
+local function update_movement(self, dt)
+	if self.entering then
+		self.pos.y = self.pos.y - ENTRANCE_SPEED * dt
+		if self.pos.y <= REST_Y then
+			self.pos.y = REST_Y
+			self.entering = false
+		end
+	else
+		local speed = self.rapid_active and RAPID_PATROL_SPEED or PATROL_SPEED
+		self.pos.x = self.pos.x + self.patrol_dir * speed * dt
+		if self.pos.x >= PATROL_MAX_X then
+			self.pos.x = PATROL_MAX_X
+			self.patrol_dir = -1
+		elseif self.pos.x <= PATROL_MIN_X then
+			self.pos.x = PATROL_MIN_X
+			self.patrol_dir = 1
+		end
+	end
+	enemy_manager.set_cluster_anchor(self.cluster_id, vmath.vector3(self.pos.x, self.pos.y, 0))
+end
+
 function init(self)
-	local anchor = vmath.vector3(216, 300, 0) -- top-center-ish of the 16-416 / 20-342 play bounds
+	self.pos = vmath.vector3(START_X, START_Y, 0)
+	self.entering = true
+	self.patrol_dir = math.random() < 0.5 and -1 or 1
 
 	local cluster_id = enemy_manager.new_cluster_id()
-	enemy_manager.create_cluster(cluster_id, anchor, BOSS_SPEED)
+	enemy_manager.create_cluster(cluster_id, vmath.vector3(self.pos), 0) -- boss drives its own anchor
 
 	local offsets = enemy_manager.hex_disc_offsets(RING_HEX_RADIUS)
 	for _, offset in ipairs(offsets) do
-		local pos = anchor + offset
+		local pos = self.pos + offset
 		local color = random_color()
 		local id = factory.create(enemy_manager.FACTORY_URL, pos, vmath.quat_rotation_z(0))
 		enemy_manager.register(id, color, cluster_id, offset)
@@ -84,8 +209,15 @@ function init(self)
 	self.original_size = #offsets
 	enemy_manager.mark_boss(cluster_id, self.original_size)
 
+	self.throws = {} -- queued throws waiting out their telegraph
+	self.pending = {} -- [enemy_id] = true while queued
 	self.throw_timer = THROW_COOLDOWN
-	self.spin_timer = SPIN_INTERVAL
+	self.ring = nil
+	self.ring_timer = 6.0 -- first chain ~6s after the boss parks
+	self.rapid_active = false
+	self.rapid_time = 0
+	self.shot_timer = 0
+	self.rapid_timer = 10.0 -- first rapid state ~10s after the boss parks
 	self.defeated = false
 
 	game_state.boss_active = true

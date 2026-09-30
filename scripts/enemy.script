@@ -10,6 +10,22 @@ local REJOIN_SPEED = 50 -- speed once it resumes chasing solo after a freeze
 local THROW_SPEED = 150
 local THROW_BOUND_MARGIN = 60 -- rough cleanup bounds if a thrown slime somehow misses the player
 
+local function start_burst(self, direction)
+	if self.bursting then return end
+	self.bursting = true
+	self.left_cluster = true
+	enemy_manager.unregister(go.get_id())
+	msg.post("#collisionobject", "disable")
+	go.cancel_animations("#sprite", "tint") -- stop any flicker/blink first
+	local dir = direction or vmath.vector3(0, 1, 0)
+	self.burst_velocity = dir * BURST_SPEED
+	self.burst_timer = BURST_LIFETIME
+	local pos = go.get_position()
+	pos.z = math.random() * 0.0001
+	go.set_position(pos)
+	go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 0), go.EASING_LINEAR, BURST_LIFETIME)
+end
+
 function final(self)
 	if not self.left_cluster then
 		enemy_manager.unregister(go.get_id())
@@ -63,26 +79,36 @@ function on_message(self, message_id, message, sender)
 		go.delete()
 
 	elseif message_id == hash("burst") then
-		self.bursting = true
-		self.left_cluster = true
-		enemy_manager.unregister(go.get_id())
-		msg.post("#collisionobject", "disable")
-		local dir = message.direction or vmath.vector3(0, 1, 0)
-		self.burst_velocity = dir * BURST_SPEED
-		self.burst_timer = BURST_LIFETIME
-		local pos = go.get_position()
-		pos.z = math.random() * 0.0001
-		go.set_position(pos)
-		go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 0), go.EASING_LINEAR, BURST_LIFETIME)
+		start_burst(self, message.direction)
 
 	elseif message_id == hash("freeze") then
 		if self.bursting or self.frozen or self.thrown then return end
+		if self.is_ring then
+			-- hit the player: burst away from them instead of freezing/rejoining
+			local away = go.get_position() - go.get_position("/player")
+			away.z = 0
+			if vmath.length_sqr(away) < 0.0001 then away = vmath.vector3(0, 1, 0) end
+			start_burst(self, vmath.normalize(away))
+			return
+		end
 		self.left_cluster = true
 		enemy_manager.unregister(go.get_id())
 		msg.post("#collisionobject", "disable")
 		self.frozen = true
 		self.freeze_timer = FREEZE_DURATION
 		go.animate("#sprite", "tint.w", go.PLAYBACK_LOOP_PINGPONG, 0.2, go.EASING_LINEAR, BLINK_DURATION)
+
+	elseif message_id == hash("ring_flicker") then
+		-- Boss chain spawned: flicker and stay harmless until "ring_arm".
+		self.is_ring = true
+		msg.post("#collisionobject", "disable")
+		go.animate("#sprite", "tint.w", go.PLAYBACK_LOOP_PINGPONG, 0.2, go.EASING_LINEAR, 0.1)
+
+	elseif message_id == hash("ring_arm") then
+		if self.bursting then return end
+		go.cancel_animations("#sprite", "tint")
+		go.set("#sprite", "tint", vmath.vector4(1, 1, 1, 1))
+		msg.post("#collisionobject", "enable")
 
 	elseif message_id == hash("telegraph") then
 		-- Boss "about to throw this one" warning blink. Stays in its
@@ -109,6 +135,6 @@ function on_message(self, message_id, message, sender)
 			dir = vmath.vector3(0, -1, 0)
 		end
 		dir = vmath.normalize(dir)
-		self.thrown_velocity = dir * THROW_SPEED
+		self.thrown_velocity = dir * (message.speed or THROW_SPEED)
 	end
 end
