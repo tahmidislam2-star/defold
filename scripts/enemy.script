@@ -7,6 +7,9 @@ local FREEZE_DURATION = 3.0
 local BLINK_DURATION = 0.15
 local REJOIN_SPEED = 50 -- speed once it resumes chasing solo after a freeze
 
+local THROW_SPEED = 150
+local THROW_BOUND_MARGIN = 60 -- rough cleanup bounds if a thrown slime somehow misses the player
+
 function final(self)
 	if not self.left_cluster then
 		enemy_manager.unregister(go.get_id())
@@ -18,6 +21,16 @@ function update(self, dt)
 		go.set_position(go.get_position() + self.burst_velocity * dt)
 		self.burst_timer = self.burst_timer - dt
 		if self.burst_timer <= 0 then
+			go.delete()
+		end
+		return
+	end
+
+	if self.thrown then
+		local pos = go.get_position() + self.thrown_velocity * dt
+		go.set_position(pos)
+		if pos.x < -THROW_BOUND_MARGIN or pos.x > 416 + THROW_BOUND_MARGIN
+		or pos.y < -THROW_BOUND_MARGIN or pos.y > 342 + THROW_BOUND_MARGIN then
 			go.delete()
 		end
 		return
@@ -63,12 +76,39 @@ function on_message(self, message_id, message, sender)
 		go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 0), go.EASING_LINEAR, BURST_LIFETIME)
 
 	elseif message_id == hash("freeze") then
-		if self.bursting or self.frozen then return end
+		if self.bursting or self.frozen or self.thrown then return end
 		self.left_cluster = true
 		enemy_manager.unregister(go.get_id())
 		msg.post("#collisionobject", "disable")
 		self.frozen = true
 		self.freeze_timer = FREEZE_DURATION
 		go.animate("#sprite", "tint.w", go.PLAYBACK_LOOP_PINGPONG, 0.2, go.EASING_LINEAR, BLINK_DURATION)
+
+	elseif message_id == hash("telegraph") then
+		-- Boss "about to throw this one" warning blink. Stays in its
+		-- cluster (still positioned by enemy_manager) and stays shootable -
+		-- a sharp-eyed player can pop it before it launches. The follow-up
+		-- "throw" message (sent by boss.script after the telegraph window)
+		-- resets the tint, so no separate cleanup timer is needed here.
+		if self.bursting or self.frozen or self.thrown then return end
+		go.animate("#sprite", "tint.w", go.PLAYBACK_LOOP_PINGPONG, 0.2, go.EASING_LINEAR, 0.1)
+
+	elseif message_id == hash("throw") then
+		if self.bursting or self.frozen or self.thrown then return end
+		go.cancel_animations("#sprite", "tint")
+		go.set("#sprite", "tint", vmath.vector4(1, 1, 1, 1))
+		self.thrown = true
+		self.left_cluster = true
+		enemy_manager.unregister(go.get_id())
+
+		local player_pos = go.get_position("/player")
+		local pos = go.get_position()
+		local dir = player_pos - pos
+		dir.z = 0
+		if vmath.length_sqr(dir) < 0.0001 then
+			dir = vmath.vector3(0, -1, 0)
+		end
+		dir = vmath.normalize(dir)
+		self.thrown_velocity = dir * THROW_SPEED
 	end
 end

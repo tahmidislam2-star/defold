@@ -35,8 +35,78 @@ function M.hex_offset(q, r)
 	return HEX_E1 * q + HEX_E2 * r
 end
 
+-- All hex cells within `radius_rings` of the center, as a flat list of
+-- offsets - a filled hexagonal "disc". Used for the boss body.
+function M.hex_disc_offsets(radius_rings)
+	local offsets = {}
+	for q = -radius_rings, radius_rings do
+		local r_min = math.max(-radius_rings, -q - radius_rings)
+		local r_max = math.min(radius_rings, -q + radius_rings)
+		for r = r_min, r_max do
+			table.insert(offsets, M.hex_offset(q, r))
+		end
+	end
+	return offsets
+end
+
 function M.create_cluster(cluster_id, anchor, speed)
 	M.clusters[cluster_id] = { anchor = anchor, speed = speed, members = {} }
+end
+
+-- Marks a cluster as the boss body, remembering its starting size so
+-- boss.script can check remaining-count against the defeat threshold.
+function M.mark_boss(cluster_id, original_size)
+	local cluster = M.clusters[cluster_id]
+	if cluster then
+		cluster.is_boss = true
+		cluster.boss_original_size = original_size
+	end
+end
+
+function M.cluster_member_count(cluster_id)
+	local cluster = M.clusters[cluster_id]
+	if not cluster then return 0 end
+	local n = 0
+	for _ in pairs(cluster.members) do n = n + 1 end
+	return n
+end
+
+function M.get_cluster_member_ids(cluster_id)
+	local cluster = M.clusters[cluster_id]
+	if not cluster then return {} end
+	local ids = {}
+	for id in pairs(cluster.members) do table.insert(ids, id) end
+	return ids
+end
+
+-- Temporarily overrides the offsets of `member_ids` so they form a rotating
+-- ring of `ring_radius` around the cluster anchor. Non-listed members are
+-- untouched. update_clusters() spins this each frame and restores the
+-- original offsets once `duration` elapses.
+function M.start_spin(cluster_id, member_ids, ring_radius, angular_speed, duration)
+	local cluster = M.clusters[cluster_id]
+	if not cluster then return end
+
+	local original_offsets = {}
+	local base_angles = {}
+	local n = #member_ids
+	for i, id in ipairs(member_ids) do
+		local data = M.enemies[id]
+		if data then
+			original_offsets[id] = data.offset
+			base_angles[id] = (i - 1) * (2 * math.pi / n)
+		end
+	end
+
+	cluster.spin = {
+		member_ids = member_ids,
+		original_offsets = original_offsets,
+		base_angles = base_angles,
+		ring_radius = ring_radius,
+		angular_speed = angular_speed,
+		elapsed = 0,
+		duration = duration,
+	}
 end
 
 function M.register(enemy_id, color, cluster_id, offset)
@@ -105,223 +175,256 @@ local function separate_clusters()
 	end
 end
 
--- Re-aims every cluster toward the player's CURRENT position each frame, then moves it.
-function M.update_clusters(dt, player_pos)
+-- Advances any active ring-spin, restoring original offsets once it ends.
+local function update_spins(dt)
 	for _, cluster in pairs(M.clusters) do
-		local dir = player_pos - cluster.anchor
-		dir.z = 0
-		if vmath.length_sqr(dir) > 0.0001 then
-			dir = vmath.normalize(dir)
-			cluster.anchor = cluster.anchor + dir * cluster.speed * dt
-		end
-	end
-
-	separate_clusters()
-
-	for _, cluster in pairs(M.clusters) do
-		for enemy_id in pairs(cluster.members) do
-			local data = M.enemies[enemy_id]
-			if data then
-				go.set_position(cluster.anchor + data.offset, enemy_id)
-			end
-		end
-	end
-end
-
-local function resolve_attach_position(cluster, hit_pos, bullet_pos)
-	local dir = bullet_pos - hit_pos
-	dir.z = 0
-	if vmath.length_sqr(dir) < 0.0001 then
-		dir = vmath.vector3(1, 0, 0)
-	end
-	dir = vmath.normalize(dir)
-	local new_pos = hit_pos + dir * M.SPACING
-
-	for _ = 1, 12 do
-		local push = vmath.vector3(0, 0, 0)
-		local overlaps = 0
-		for enemy_id in pairs(cluster.members) do
-			local other = M.enemies[enemy_id]
-			if other then
-				local other_pos = cluster.anchor + other.offset
-				local delta = new_pos - other_pos
-				local dist = vmath.length(delta)
-				if dist < M.SPACING and dist > 0.0001 then
-					push = push + vmath.normalize(delta) * (M.SPACING - dist)
-					overlaps = overlaps + 1
+		local spin = cluster.spin
+		if spin then
+			spin.elapsed = spin.elapsed + dt
+			if spin.elapsed >= spin.duration then
+				for _, id in ipairs(spin.member_ids) do
+					local data = M.enemies[id]
+					if data then
+						data.offset = spin.original_offsets[id]
+					end
+				end
+				cluster.spin = nil
+			else
+				local angle_offset = spin.elapsed * spin.angular_speed
+				for _, id in ipairs(spin.member_ids) do
+					local data = M.enemies[id]
+					if data then
+						local a = spin.base_angles[id] + angle_offset
+						data.offset = vmath.vector3(
+						math.cos(a) * spin.ring_radius,
+						math.sin(a) * spin.ring_radius,
+						0
+					)
 				end
 			end
 		end
-		if overlaps == 0 then break end
-		new_pos = new_pos + push * (1 / overlaps)
 	end
+end
+end
 
-	new_pos.z = 0
-	return new_pos
+-- Re-aims every cluster toward the player's CURRENT position each frame, then moves it.
+function M.update_clusters(dt, player_pos)
+for _, cluster in pairs(M.clusters) do
+	local dir = player_pos - cluster.anchor
+	dir.z = 0
+	if vmath.length_sqr(dir) > 0.0001 then
+		dir = vmath.normalize(dir)
+		cluster.anchor = cluster.anchor + dir * cluster.speed * dt
+	end
+end
+
+separate_clusters()
+update_spins(dt)
+
+for _, cluster in pairs(M.clusters) do
+	for enemy_id in pairs(cluster.members) do
+		local data = M.enemies[enemy_id]
+		if data then
+			go.set_position(cluster.anchor + data.offset, enemy_id)
+		end
+	end
+end
+end
+
+local function resolve_attach_position(cluster, hit_pos, bullet_pos)
+local dir = bullet_pos - hit_pos
+dir.z = 0
+if vmath.length_sqr(dir) < 0.0001 then
+	dir = vmath.vector3(1, 0, 0)
+end
+dir = vmath.normalize(dir)
+local new_pos = hit_pos + dir * M.SPACING
+
+for _ = 1, 12 do
+	local push = vmath.vector3(0, 0, 0)
+	local overlaps = 0
+	for enemy_id in pairs(cluster.members) do
+		local other = M.enemies[enemy_id]
+		if other then
+			local other_pos = cluster.anchor + other.offset
+			local delta = new_pos - other_pos
+			local dist = vmath.length(delta)
+			if dist < M.SPACING and dist > 0.0001 then
+				push = push + vmath.normalize(delta) * (M.SPACING - dist)
+				overlaps = overlaps + 1
+			end
+		end
+	end
+	if overlaps == 0 then break end
+	new_pos = new_pos + push * (1 / overlaps)
+end
+
+new_pos.z = 0
+return new_pos
 end
 
 local function flood_fill_same_color(cluster, start_id, color)
-	local visited = {}
-	local stack = { start_id }
-	while #stack > 0 do
-		local id = table.remove(stack)
-		if not visited[id] then
-			visited[id] = true
-			local a = M.enemies[id]
-			for other_id in pairs(cluster.members) do
-				if not visited[other_id] then
-					local other = M.enemies[other_id]
-					if a and other and other.color == color then
-						local dist = vmath.length((cluster.anchor + a.offset) - (cluster.anchor + other.offset))
-						if dist <= ADJACENCY then
-							table.insert(stack, other_id)
-						end
+local visited = {}
+local stack = { start_id }
+while #stack > 0 do
+	local id = table.remove(stack)
+	if not visited[id] then
+		visited[id] = true
+		local a = M.enemies[id]
+		for other_id in pairs(cluster.members) do
+			if not visited[other_id] then
+				local other = M.enemies[other_id]
+				if a and other and other.color == color then
+					local dist = vmath.length((cluster.anchor + a.offset) - (cluster.anchor + other.offset))
+					if dist <= ADJACENCY then
+						table.insert(stack, other_id)
 					end
 				end
 			end
 		end
 	end
-	return visited
+end
+return visited
 end
 
 -- Finds the connected component (physical adjacency, any color) that
 -- `start_id` belongs to, restricted to the ids in `member_set`. Used after a
 -- pop to see what's still structurally attached to what.
 local function connected_component(cluster, member_set, start_id, visited)
-	local component = {}
-	local stack = { start_id }
-	while #stack > 0 do
-		local id = table.remove(stack)
-		if not visited[id] then
-			visited[id] = true
-			component[id] = true
-			local a = M.enemies[id]
-			for other_id in pairs(member_set) do
-				if not visited[other_id] then
-					local other = M.enemies[other_id]
-					if a and other then
-						local dist = vmath.length((cluster.anchor + a.offset) - (cluster.anchor + other.offset))
-						if dist <= ADJACENCY then
-							table.insert(stack, other_id)
-						end
+local component = {}
+local stack = { start_id }
+while #stack > 0 do
+	local id = table.remove(stack)
+	if not visited[id] then
+		visited[id] = true
+		component[id] = true
+		local a = M.enemies[id]
+		for other_id in pairs(member_set) do
+			if not visited[other_id] then
+				local other = M.enemies[other_id]
+				if a and other then
+					local dist = vmath.length((cluster.anchor + a.offset) - (cluster.anchor + other.offset))
+					if dist <= ADJACENCY then
+						table.insert(stack, other_id)
 					end
 				end
 			end
 		end
 	end
-	return component
+end
+return component
 end
 local function push_score()
-	msg.post("/ui#panel", "update_score", { score = M.score })
+msg.post("/ui#panel", "update_score", { score = M.score })
 end
 
 function M.reset_score()
-	M.score = 0
-	push_score()
+M.score = 0
+push_score()
 end
 
 local function award_points(slime_count, whole_cluster)
-	local per_slime = M.POINTS_PER_SLIME
-	if whole_cluster then
-		per_slime = per_slime * M.CLEAR_MULTIPLIER
-	end
-	M.score = M.score + slime_count * per_slime
-	push_score()
+local per_slime = M.POINTS_PER_SLIME
+if whole_cluster then
+	per_slime = per_slime * M.CLEAR_MULTIPLIER
+end
+M.score = M.score + slime_count * per_slime
+push_score()
 end
 
 function M.handle_attach(hit_enemy_id, color, bullet_pos)
 
-	local hit_data = M.enemies[hit_enemy_id]
-	if not hit_data then
-		return
-	end
-	local cluster = M.clusters[hit_data.cluster_id]
-	if not cluster then
-		return
-	end
+local hit_data = M.enemies[hit_enemy_id]
+if not hit_data then
+	return
+end
+local cluster = M.clusters[hit_data.cluster_id]
+if not cluster then
+	return
+end
 
-	-- Size of the cluster the bullet actually hit, BEFORE the new slime
-	-- joins it. This is what "the cluster" means for the small-cluster rule
-	-- below - counting after the attach would let a 3-slime cluster dodge
-	-- the rule just by having grown to 4 the instant the bullet landed.
-	local pre_attach_size = 0
-	for _ in pairs(cluster.members) do pre_attach_size = pre_attach_size + 1 end
+-- Size of the cluster the bullet actually hit, BEFORE the new slime
+-- joins it. This is what "the cluster" means for the small-cluster rule
+-- below - counting after the attach would let a 3-slime cluster dodge
+-- the rule just by having grown to 4 the instant the bullet landed.
+local pre_attach_size = 0
+for _ in pairs(cluster.members) do pre_attach_size = pre_attach_size + 1 end
 
-	local hit_pos = cluster.anchor + hit_data.offset
-	local new_pos = resolve_attach_position(cluster, hit_pos, bullet_pos)
-	local new_offset = new_pos - cluster.anchor
+local hit_pos = cluster.anchor + hit_data.offset
+local new_pos = resolve_attach_position(cluster, hit_pos, bullet_pos)
+local new_offset = new_pos - cluster.anchor
 
-	local new_id = factory.create(M.FACTORY_URL, new_pos, vmath.quat_rotation_z(0))
-	M.register(new_id, color, hit_data.cluster_id, new_offset)
-	msg.post(new_id, "setup", { color = color })
+local new_id = factory.create(M.FACTORY_URL, new_pos, vmath.quat_rotation_z(0))
+M.register(new_id, color, hit_data.cluster_id, new_offset)
+msg.post(new_id, "setup", { color = color })
 
-	local matched = flood_fill_same_color(cluster, new_id, color)
-	local matched_count = 0
-	for _ in pairs(matched) do matched_count = matched_count + 1 end
+local matched = flood_fill_same_color(cluster, new_id, color)
+local matched_count = 0
+for _ in pairs(matched) do matched_count = matched_count + 1 end
 
-	if matched_count < 3 then
-		return -- no match yet, the new slime just joins the cluster
-	end
+if matched_count < 3 then
+	return -- no match yet, the new slime just joins the cluster
+end
 
-	-- Size counted AFTER the new slime joins (pre_attach_size + 1) - this is
-	-- what "the cluster" means for the explode rule below.
-	local post_attach_size = pre_attach_size + 1
+-- Size counted AFTER the new slime joins (pre_attach_size + 1) - this is
+-- what "the cluster" means for the explode rule below.
+local post_attach_size = pre_attach_size + 1
 
-	if post_attach_size <= 6 then
-		for enemy_id in pairs(cluster.members) do
-			local other = M.enemies[enemy_id]
-			local dir = other and other.offset or vmath.vector3(0, 1, 0)
-			if vmath.length_sqr(dir) < 0.0001 then
-				dir = vmath.vector3(math.random() - 0.5, math.random() - 0.5, 0)
-			end
-			dir = vmath.normalize(dir)
-			msg.post(enemy_id, "burst", { direction = dir })
-		end
-		award_points(post_attach_size, true)
-		M.clusters[hit_data.cluster_id] = nil
-		return
-	end
-	-- Bigger cluster: pop just the matched group; lone survivors pop too.
-	local popped_count = matched_count
-	for enemy_id in pairs(matched) do
-		msg.post(enemy_id, "pop")
-	end
-
-	local remaining = {}
+if post_attach_size <= 6 and not cluster.is_boss then
 	for enemy_id in pairs(cluster.members) do
-		if not matched[enemy_id] then
-			remaining[enemy_id] = true
+		local other = M.enemies[enemy_id]
+		local dir = other and other.offset or vmath.vector3(0, 1, 0)
+		if vmath.length_sqr(dir) < 0.0001 then
+			dir = vmath.vector3(math.random() - 0.5, math.random() - 0.5, 0)
 		end
+		dir = vmath.normalize(dir)
+		msg.post(enemy_id, "burst", { direction = dir })
 	end
+	award_points(post_attach_size, true)
+	M.clusters[hit_data.cluster_id] = nil
+	return
+end
+-- Bigger cluster: pop just the matched group; lone survivors pop too.
+local popped_count = matched_count
+for enemy_id in pairs(matched) do
+	msg.post(enemy_id, "pop")
+end
 
-	if next(remaining) == nil then
-		M.clusters[hit_data.cluster_id] = nil
-		award_points(popped_count, true) -- matched group was the whole cluster
-		return
+local remaining = {}
+for enemy_id in pairs(cluster.members) do
+	if not matched[enemy_id] then
+		remaining[enemy_id] = true
 	end
+end
 
-	local visited = {}
-	local anything_survived = false
-	for start_id in pairs(remaining) do
-		if not visited[start_id] then
-			local component = connected_component(cluster, remaining, start_id, visited)
-			local size = 0
-			for _ in pairs(component) do size = size + 1 end
-			if size <= 1 then
-				for enemy_id in pairs(component) do
-					msg.post(enemy_id, "pop")
-					popped_count = popped_count + 1
-				end
-			else
-				anything_survived = true
+if next(remaining) == nil then
+	M.clusters[hit_data.cluster_id] = nil
+	award_points(popped_count, true) -- matched group was the whole cluster
+	return
+end
+
+local visited = {}
+local anything_survived = false
+for start_id in pairs(remaining) do
+	if not visited[start_id] then
+		local component = connected_component(cluster, remaining, start_id, visited)
+		local size = 0
+		for _ in pairs(component) do size = size + 1 end
+		if size <= 1 then
+			for enemy_id in pairs(component) do
+				msg.post(enemy_id, "pop")
+				popped_count = popped_count + 1
 			end
+		else
+			anything_survived = true
 		end
 	end
+end
 
-	if not anything_survived then
-		M.clusters[hit_data.cluster_id] = nil
-	end
-	award_points(popped_count, not anything_survived)
+if not anything_survived then
+	M.clusters[hit_data.cluster_id] = nil
+end
+award_points(popped_count, not anything_survived)
 end
 
 return M

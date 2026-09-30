@@ -10,8 +10,14 @@ local BOUND_MAX_Y = 342
 local SPAWN_MARGIN = 120
 local SPAWN_INTERVAL = 1.2   -- gap between clusters WITHIN a wave
 local NEXT_WAVE_DELAY = 2.0  -- pause after a wave clears, before the next starts
-local enemy_manager = require("scripts.enemy_manager")
 local game_state = require("scripts.game_state")
+
+-- Boss appears every 5 waves. The `wave_number == 1` clause is TEMPORARY,
+-- for testing the boss encounter right away - delete that clause once
+-- you've confirmed it works, leaving just the "every 5" rule.
+local function is_boss_wave(wave_number)
+	return wave_number == 1 or wave_number % 5 == 0
+end
 
 local CLUSTER_SHAPES = {
 	[1] = {{0,0}},
@@ -77,16 +83,30 @@ local function spawn_cluster(self)
 	return size
 end
 
+-- Starts self.wave_number's wave: a boss encounter or a normal spawn wave.
+-- Shared by init() and the wave-advance logic below so both paths always
+-- make the same decision.
+local function start_wave(self, initial_spawn_timer)
+	msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number })
+
+	if is_boss_wave(self.wave_number) then
+		factory.create("#bossfactory")
+		self.to_spawn = 0
+		self.state = "boss_fight"
+	else
+		self.to_spawn = wave_target(self.wave_number)
+		self.spawn_timer = initial_spawn_timer or 0.5
+		self.state = "spawning"
+	end
+end
+
 function init(self)
 	-- if defos then
 	-- 	defos.set_cursor_visible(false) #turn on later- mouse hide
 	-- end
 	self.wave_number = 1
-	self.to_spawn = wave_target(self.wave_number)
-	self.spawn_timer = 0.5
-	self.state = "spawning"
-	msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number })
 	enemy_manager.reset_score()
+	start_wave(self, 0.5)
 end
 
 function update(self, dt)
@@ -113,10 +133,13 @@ function update(self, dt)
 	elseif self.state == "waiting_clear" then
 		if enemy_manager.alive_count <= 0 then
 			self.wave_number = self.wave_number + 1
-			self.to_spawn = wave_target(self.wave_number)
-			self.spawn_timer = NEXT_WAVE_DELAY
-			self.state = "spawning"
-			msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number })
+			start_wave(self, NEXT_WAVE_DELAY)
+		end
+
+	elseif self.state == "boss_fight" then
+		if not game_state.boss_active then
+			self.wave_number = self.wave_number + 1
+			start_wave(self, NEXT_WAVE_DELAY)
 		end
 	end
 end
