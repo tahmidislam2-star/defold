@@ -53,6 +53,18 @@ function M.create_cluster(cluster_id, anchor, speed)
 	M.clusters[cluster_id] = { anchor = anchor, speed = speed, members = {} }
 end
 
+-- Directly overrides a cluster's anchor, bypassing the generic
+-- home-toward-player movement in update_clusters(). Used by the boss, which
+-- drives its own position (entrance, patrol) rather than homing to the
+-- player like a normal enemy cluster. Leave the cluster's speed at 0 so the
+-- generic homing never fights this.
+function M.set_cluster_anchor(cluster_id, anchor)
+	local cluster = M.clusters[cluster_id]
+	if cluster then
+		cluster.anchor = anchor
+	end
+end
+
 -- Marks a cluster as the boss body, remembering its starting size so
 -- boss.script can check remaining-count against the defeat threshold.
 function M.mark_boss(cluster_id, original_size)
@@ -79,34 +91,26 @@ function M.get_cluster_member_ids(cluster_id)
 	return ids
 end
 
--- Temporarily overrides the offsets of `member_ids` so they form a rotating
--- ring of `ring_radius` around the cluster anchor. Non-listed members are
--- untouched. update_clusters() spins this each frame and restores the
--- original offsets once `duration` elapses.
-function M.start_spin(cluster_id, member_ids, ring_radius, angular_speed, duration)
+function M.get_cluster_anchor(cluster_id)
 	local cluster = M.clusters[cluster_id]
-	if not cluster then return end
+	return cluster and cluster.anchor
+end
 
-	local original_offsets = {}
-	local base_angles = {}
-	local n = #member_ids
-	for i, id in ipairs(member_ids) do
-		local data = M.enemies[id]
-		if data then
-			original_offsets[id] = data.offset
-			base_angles[id] = (i - 1) * (2 * math.pi / n)
-		end
-	end
+-- Lets a controller (e.g. boss.script) directly drive a cluster's position,
+-- bypassing the normal per-frame homing-toward-player in update_clusters.
+-- The cluster's own `speed` should stay 0 so nothing else moves it.
+function M.set_cluster_anchor(cluster_id, pos)
+	local cluster = M.clusters[cluster_id]
+	if cluster then cluster.anchor = pos end
+end
 
-	cluster.spin = {
-		member_ids = member_ids,
-		original_offsets = original_offsets,
-		base_angles = base_angles,
-		ring_radius = ring_radius,
-		angular_speed = angular_speed,
-		elapsed = 0,
-		duration = duration,
-	}
+-- Makes every member of a cluster continuously orbit the cluster's anchor at
+-- `angular_speed` radians/sec (nil or 0 stops the rotation). Unlike a one-off
+-- animation, this keeps spinning indefinitely until stopped or the cluster
+-- is destroyed - fits a hazard ring that spins until it bursts away.
+function M.set_cluster_rotation(cluster_id, angular_speed)
+	local cluster = M.clusters[cluster_id]
+	if cluster then cluster.rotation_speed = angular_speed end
 end
 
 function M.register(enemy_id, color, cluster_id, offset)
@@ -175,32 +179,23 @@ local function separate_clusters()
 	end
 end
 
--- Advances any active ring-spin, restoring original offsets once it ends.
-local function update_spins(dt)
+-- Rotates every member's offset around its cluster's anchor for any cluster
+-- with an active rotation_speed.
+local function update_rotations(dt)
 	for _, cluster in pairs(M.clusters) do
-		local spin = cluster.spin
-		if spin then
-			spin.elapsed = spin.elapsed + dt
-			if spin.elapsed >= spin.duration then
-				for _, id in ipairs(spin.member_ids) do
-					local data = M.enemies[id]
-					if data then
-						data.offset = spin.original_offsets[id]
-					end
-				end
-				cluster.spin = nil
-			else
-				local angle_offset = spin.elapsed * spin.angular_speed
-				for _, id in ipairs(spin.member_ids) do
-					local data = M.enemies[id]
-					if data then
-						local a = spin.base_angles[id] + angle_offset
-						data.offset = vmath.vector3(
-						math.cos(a) * spin.ring_radius,
-						math.sin(a) * spin.ring_radius,
-						0
-					)
-				end
+		local speed = cluster.rotation_speed
+		if speed and speed ~= 0 then
+			local angle = speed * dt
+			local cos_a, sin_a = math.cos(angle), math.sin(angle)
+			for enemy_id in pairs(cluster.members) do
+				local data = M.enemies[enemy_id]
+				if data then
+					local o = data.offset
+					data.offset = vmath.vector3(
+					o.x * cos_a - o.y * sin_a,
+					o.x * sin_a + o.y * cos_a,
+					o.z
+				)
 			end
 		end
 	end
