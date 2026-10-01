@@ -232,15 +232,43 @@ function update(self, dt)
 		return
 	end
 
-	self.throw_timer = self.throw_timer - dt
-	if self.throw_timer <= 0 then
-		self.throw_timer = THROW_COOLDOWN
-		do_throw_attack(self)
+	update_movement(self, dt)
+	update_throws(self, dt)
+	update_ring(self, dt)
+
+	if self.entering then return end -- no attacks while flying in
+
+	if self.rapid_active then
+		self.rapid_time = self.rapid_time - dt
+		self.shot_timer = self.shot_timer - dt
+		if self.shot_timer <= 0 then
+			self.shot_timer = RAPID_SHOT_INTERVAL
+			queue_throw(self, RAPID_TELEGRAPH, RAPID_THROW_SPEED)
+		end
+		if self.rapid_time <= 0 then
+			self.rapid_active = false
+			self.rapid_timer = RAPID_COOLDOWN
+			self.throw_timer = THROW_COOLDOWN
+		end
+	else
+		self.throw_timer = self.throw_timer - dt
+		if self.throw_timer <= 0 then
+			self.throw_timer = THROW_COOLDOWN
+			queue_throw(self, THROW_TELEGRAPH, nil)
+		end
 	end
 
-	self.spin_timer = self.spin_timer - dt
-	if self.spin_timer <= 0 then
-		self.spin_timer = SPIN_INTERVAL
-		do_spin_attack(self)
+	-- The chain and the rapid state never overlap.
+	self.ring_timer = self.ring_timer - dt
+	self.rapid_timer = self.rapid_timer - dt
+	if self.ring == nil and not self.rapid_active then
+		if self.ring_timer <= 0 then
+			self.ring_timer = RING_COOLDOWN
+			spawn_ring(self)
+		elseif self.rapid_timer <= 0 then
+			self.rapid_active = true
+			self.rapid_time = RAPID_DURATION
+			self.shot_timer = 0
+		end
 	end
 end
