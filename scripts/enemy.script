@@ -10,6 +10,24 @@ local REJOIN_SPEED = 50 -- speed once it resumes chasing solo after a freeze
 local THROW_SPEED = 150
 local THROW_BOUND_MARGIN = 60 -- rough cleanup bounds if a thrown slime somehow misses the player
 
+local FADE_DURATION = 1.2
+
+local SQUISH_SCALE = vmath.vector3(1.12, 0.88, 1) -- stretch x / squash y, pingponged against the base scale
+local SQUISH_PERIOD = 0.6 -- seconds per half-cycle, base value before per-instance jitter
+
+local function start_squish(self)
+	-- A little per-instance jitter so a whole cluster doesn't pulse in
+	-- unison like a single robotic blob.
+	local period = SQUISH_PERIOD * (0.85 + math.random() * 0.3)
+	local delay = math.random() * period
+	go.animate("#sprite", "scale", go.PLAYBACK_LOOP_PINGPONG, SQUISH_SCALE, go.EASING_INOUTSINE, period, delay)
+end
+
+local function stop_squish(self)
+	go.cancel_animations("#sprite", "scale")
+	go.set("#sprite", "scale", vmath.vector3(1, 1, 1))
+end
+
 local function start_burst(self, direction)
 	if self.bursting then return end
 	self.bursting = true
@@ -24,6 +42,22 @@ local function start_burst(self, direction)
 	pos.z = math.random() * 0.0001
 	go.set_position(pos)
 	go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 0), go.EASING_LINEAR, BURST_LIFETIME)
+end
+
+-- Same "leave the cluster, stop dealing damage, then disappear" pipeline as
+-- start_burst, but with no outward velocity - it fades in place instead of
+-- flying away. Collision is disabled immediately, same as a burst, so the
+-- player can't be hit by it while it fades.
+local function start_fade_out(self)
+	if self.bursting then return end
+	self.bursting = true -- reuses the same update() branch/guards as a burst
+	self.left_cluster = true
+	enemy_manager.unregister(go.get_id())
+	msg.post("#collisionobject", "disable")
+	go.cancel_animations("#sprite", "tint")
+	self.burst_velocity = vmath.vector3(0, 0, 0)
+	self.burst_timer = FADE_DURATION
+	go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 0), go.EASING_LINEAR, FADE_DURATION)
 end
 
 function final(self)
@@ -66,6 +100,7 @@ function update(self, dt)
 			enemy_manager.create_cluster(cluster_id, go.get_position(), REJOIN_SPEED)
 			enemy_manager.register(go.get_id(), self.color, cluster_id, vmath.vector3(0, 0, 0))
 			self.left_cluster = false
+			start_squish(self)
 		end
 	end
 end
@@ -74,12 +109,16 @@ function on_message(self, message_id, message, sender)
 	if message_id == hash("setup") then
 		self.color = message.color
 		sprite.play_flipbook("#sprite", hash(self.color))
+		start_squish(self)
 
 	elseif message_id == hash("pop") then
 		go.delete()
 
 	elseif message_id == hash("burst") then
 		start_burst(self, message.direction)
+
+	elseif message_id == hash("fade_out") then
+		start_fade_out(self)
 
 	elseif message_id == hash("freeze") then
 		if self.bursting or self.frozen or self.thrown then return end
@@ -96,6 +135,7 @@ function on_message(self, message_id, message, sender)
 		msg.post("#collisionobject", "disable")
 		self.frozen = true
 		self.freeze_timer = FREEZE_DURATION
+		stop_squish(self) -- hold a static pose while frozen
 		go.animate("#sprite", "tint.w", go.PLAYBACK_LOOP_PINGPONG, 0.2, go.EASING_LINEAR, BLINK_DURATION)
 
 	elseif message_id == hash("ring_flicker") then

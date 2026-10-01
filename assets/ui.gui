@@ -3,6 +3,10 @@ fonts {
   name: "default"
   font: "/builtins/fonts/default.font"
 }
+fonts {
+  name: "pixel"
+  font: "/game objects/pixel.font"
+}
 textures {
   name: "slimes"
   texture: "/assets/slimes.atlas"
@@ -28,8 +32,8 @@ nodes {
 }
 nodes {
   position {
-    x: 510.0
-    y: 212.0
+    x: 500.0
+    y: 294.0
   }
   scale {
     x: 2.0
@@ -44,8 +48,8 @@ nodes {
 }
 nodes {
   position {
-    x: 574.0
-    y: 212.0
+    x: 570.0
+    y: 294.0
   }
   scale {
     x: 2.0
@@ -60,8 +64,8 @@ nodes {
 }
 nodes {
   position {
-    x: 542.0
-    y: 212.0
+    x: 535.0
+    y: 294.0
   }
   scale {
     x: 2.0
@@ -76,12 +80,8 @@ nodes {
 }
 nodes {
   position {
-    x: 544.0
-    y: 322.0
-  }
-  scale {
-    x: 2.0
-    y: 2.0
+    x: 534.0
+    y: 140.0
   }
   size {
     x: 200.0
@@ -89,18 +89,14 @@ nodes {
   }
   type: TYPE_TEXT
   text: "Wave 1"
-  font: "default"
+  font: "pixel"
   id: "wave_label"
   inherit_alpha: true
 }
 nodes {
   position {
-    x: 545.0
-    y: 129.0
-  }
-  scale {
-    x: 1.5
-    y: 1.5
+    x: 534.0
+    y: 55.0
   }
   size {
     x: 200.0
@@ -109,14 +105,14 @@ nodes {
   type: TYPE_TEXT
   text: "0000\n"
   ""
-  font: "default"
+  font: "pixel"
   id: "score_label"
   inherit_alpha: true
 }
 nodes {
   position {
-    x: 510.0
-    y: 254.0
+    x: 485.0
+    y: 219.0
   }
   type: TYPE_BOX
   texture: "heart/heart"
@@ -126,8 +122,8 @@ nodes {
 }
 nodes {
   position {
-    x: 574.0
-    y: 254.0
+    x: 585.0
+    y: 219.0
   }
   type: TYPE_BOX
   texture: "heart/heart"
@@ -137,8 +133,8 @@ nodes {
 }
 nodes {
   position {
-    x: 542.0
-    y: 254.0
+    x: 535.0
+    y: 219.0
   }
   type: TYPE_BOX
   texture: "heart/heart"

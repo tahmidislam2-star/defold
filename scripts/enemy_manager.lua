@@ -3,6 +3,7 @@ local M = {}
 M.RADIUS = 9
 M.SPACING = M.RADIUS * 2
 M.FACTORY_URL = "/spawner#enemyfactory"
+M.POP_EFFECT_FACTORY_URL = "/spawner#popeffectfactory"
 M.POINTS_PER_SLIME = 5
 M.CLEAR_MULTIPLIER = 3
 M.score = 0

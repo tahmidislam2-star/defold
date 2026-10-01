@@ -112,15 +112,7 @@ local function burst_ring(self)
 
 	enemy_manager.set_cluster_rotation(ring.cluster_id, 0)
 	for _, id in ipairs(enemy_manager.get_cluster_member_ids(ring.cluster_id)) do
-		local data = enemy_manager.enemies[id]
-		local dir = vmath.vector3(0, 1, 0)
-		if data then
-			dir = vmath.vector3(data.offset.x, data.offset.y, 0) -- outward from the ring center
-			if vmath.length_sqr(dir) < 0.0001 then
-				dir = vmath.vector3(0, 1, 0)
-			end
-		end
-		msg.post(id, "burst", { direction = vmath.normalize(dir) })
+		msg.post(id, "fade_out")
 	end
 	self.ring = nil
 end
