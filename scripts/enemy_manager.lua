@@ -388,7 +388,7 @@ if post_attach_size <= 6 and not cluster.is_boss then
 			dir = vmath.vector3(math.random() - 0.5, math.random() - 0.5, 0)
 		end
 		dir = vmath.normalize(dir)
-		msg.post(enemy_id, "burst", { direction = dir })
+		msg.post(enemy_id, "burst", { direction = dir, effect = true })
 	end
 	award_points(post_attach_size, true)
 	M.clusters[hit_data.cluster_id] = nil

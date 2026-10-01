@@ -16,7 +16,7 @@ local game_state = require("scripts.game_state")
 -- for testing the boss encounter right away - delete that clause once
 -- you've confirmed it works, leaving just the "every 5" rule.
 local function is_boss_wave(wave_number)
-	return wave_number == 1 or wave_number % 5 == 0
+	return  wave_number % 5 == 0 --wave_number == 1 or
 end
 
 local CLUSTER_SHAPES = {

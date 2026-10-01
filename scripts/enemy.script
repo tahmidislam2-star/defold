@@ -1,7 +1,7 @@
 local enemy_manager = require("scripts.enemy_manager")
 
 local BURST_SPEED = 220
-local BURST_LIFETIME = 1.5
+local BURST_LIFETIME = 0.5
 
 local FREEZE_DURATION = 3.0
 local BLINK_DURATION = 0.15
@@ -132,6 +132,9 @@ function on_message(self, message_id, message, sender)
 		go.delete()
 
 	elseif message_id == hash("burst") then
+		if message.effect then
+			spawn_pop_effect(self)
+		end
 		start_burst(self, message.direction)
 
 	elseif message_id == hash("fade_out") then
