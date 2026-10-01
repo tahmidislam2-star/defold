@@ -117,6 +117,12 @@ embedded_instances {
   "  data: \"prototype: \\\"/game objects/boss.go\\\"\\n"
   "\"\n"
   "}\n"
+  "embedded_components {\n"
+  "  id: \"popeffectfactory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/game objects/pop_effect.go\\\"\\n"
+  "\"\n"
+  "}\n"
   ""
 }
 embedded_instances {

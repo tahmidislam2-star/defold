@@ -2,6 +2,10 @@ components {
   id: "particles"
   component: "/assets/pop_particles.particlefx"
 }
+components {
+  id: "pop_effect"
+  component: "/scripts/pop_effect.script"
+}
 embedded_components {
   id: "flash"
   type: "sprite"

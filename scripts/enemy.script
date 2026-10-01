@@ -28,6 +28,22 @@ local function stop_squish(self)
 	go.set("#sprite", "scale", vmath.vector3(1, 1, 1))
 end
 
+local POP_COLORS = {
+	red    = vmath.vector4(1.0, 0.35, 0.30, 1),
+	blue   = vmath.vector4(0.40, 0.70, 1.0, 1),
+	green  = vmath.vector4(0.60, 0.95, 0.45, 1),
+	yellow = vmath.vector4(1.0, 0.92, 0.35, 1),
+	lime   = vmath.vector4(0.80, 0.90, 0.90, 1),
+	brown  = vmath.vector4(0.90, 0.55, 0.30, 1),
+}
+
+local function spawn_pop_effect(self)
+	local pos = go.get_world_position()
+	pos.z = 0.3 -- in front of the slimes
+	local tint = POP_COLORS[self.color] or vmath.vector4(1, 1, 1, 1)
+	factory.create(enemy_manager.POP_EFFECT_FACTORY_URL, pos, nil, { tint = tint })
+end
+
 local function start_burst(self, direction)
 	if self.bursting then return end
 	self.bursting = true
@@ -112,6 +128,7 @@ function on_message(self, message_id, message, sender)
 		start_squish(self)
 
 	elseif message_id == hash("pop") then
+		spawn_pop_effect(self)
 		go.delete()
 
 	elseif message_id == hash("burst") then
