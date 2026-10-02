@@ -4,14 +4,15 @@ local HOVER_DURATION = 0.12
 local PRESS_DURATION = 0.08
 local FADE_OUT_DURATION = 0.3
 
-local HOVER_COLOR = vmath.vector4(1, 0.95, 0.4, 1) -- warm highlight tint
+local HOVER_COLOR = vmath.vector4(0.2078, 0.5333, 0.3059, 1) -- warm highlight tint
 local NORMAL_COLOR = vmath.vector4(1, 1, 1, 1)
 
-local FADE_NODES = { "background", "title", "start_button" }
+local FADE_NODES = { "bg", "title", "Start button" } -- "text" fades with it via inherit_alpha
 
 function init(self)
 	msg.post(".", "acquire_input_focus")
-	self.button = gui.get_node("start_button")
+	self.button = gui.get_node("Start button") -- hit-area + scale pivot
+	self.label = gui.get_node("text") -- the visible word; tint goes here
 	self.base_scale = gui.get_scale(self.button)
 	self.hovering = false
 	self.started = false
@@ -25,7 +26,7 @@ local function set_hover(self, hovering)
 	local target_color = hovering and HOVER_COLOR or NORMAL_COLOR
 
 	gui.animate(self.button, gui.PROP_SCALE, target_scale, gui.EASING_OUTQUAD, HOVER_DURATION)
-	gui.animate(self.button, "color", target_color, gui.EASING_OUTQUAD, HOVER_DURATION)
+	gui.animate(self.label, "color", target_color, gui.EASING_OUTQUAD, HOVER_DURATION)
 end
 
 local function start_game(self)
@@ -41,7 +42,7 @@ local function start_game(self)
 
 	timer.delay(FADE_OUT_DURATION, false, function()
 		msg.post(".", "release_input_focus")
-		msg.post("#gui", "disable")
+		msg.post("#main_menu_ui", "disable")
 	end)
 
 	msg.post("#game_proxy", "load")

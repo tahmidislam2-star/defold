@@ -1,3 +1,4 @@
+script: "/scripts/main_menu_ui.gui_script"
 fonts {
   name: "pixel"
   font: "/game objects/pixel.font"
