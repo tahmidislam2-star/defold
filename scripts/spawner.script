@@ -126,6 +126,7 @@ function init(self)
 	-- 	defos.set_cursor_visible(false) #turn on later- mouse hide
 	-- end
 	self.wave_number = 1
+	enemy_manager.load_high_score()
 	enemy_manager.reset_score()
 	start_wave(self, 0.5)
 end

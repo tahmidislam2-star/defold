@@ -1,6 +1,7 @@
 -- player.script
 
 local game_state = require("scripts.game_state")
+local enemy_manager = require("scripts.enemy_manager")
 
 local SPEED = 200
 
@@ -15,7 +16,7 @@ local HITSTOP_DURATION = 0.08 -- bonus: brief freeze-frame on hit
 local WALK_SQUISH_SCALE = vmath.vector3(1.1, 0.9, 1)
 local WALK_SQUISH_PERIOD = 0.2 -- quick bounce while actively moving
 
-local TILT_ANGLE = 6-- degrees; flip the sign below if left/right look swapped
+local TILT_ANGLE = 6 -- degrees; flip the sign below if left/right look swapped
 local TILT_DURATION = 0.15
 
 local function start_walk_squish(self)
@@ -36,6 +37,7 @@ local function set_tilt(self, target)
 	-- unaffected by rotation either way.
 	go.animate(".", "euler.z", go.PLAYBACK_ONCE_FORWARD, target, go.EASING_OUTQUAD, TILT_DURATION)
 end
+
 function init(self)
 	self.move_up = false
 	self.move_down = false
@@ -48,6 +50,7 @@ function init(self)
 	self.tilt_target = 0
 	msg.post(".", "acquire_input_focus")
 end
+
 function on_input(self, action_id, action)
 	if game_state.game_over then return end
 
@@ -126,7 +129,7 @@ function on_message(self, message_id, message, sender)
 
 			if self.hearts <= 0 then
 				game_state.game_over = true
-				msg.post("/ui#panel", "show_game_over", {})
+				msg.post("/ui#panel", "show_game_over", { score = enemy_manager.score, high_score = enemy_manager.high_score })
 			end
 		end
 	end

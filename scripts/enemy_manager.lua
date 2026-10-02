@@ -7,6 +7,20 @@ M.POP_EFFECT_FACTORY_URL = "/spawner#popeffectfactory"
 M.POINTS_PER_SLIME = 5
 M.CLEAR_MULTIPLIER = 3
 M.score = 0
+M.high_score = 0
+
+local function save_path()
+	return sys.get_save_file("shooter", "highscore")
+end
+
+-- Call once per game session (spawner.script's init) to read the persisted
+-- high score from disk before anything else runs.
+function M.load_high_score()
+	local ok, data = pcall(sys.load, save_path())
+	if ok and data and data.high_score then
+		M.high_score = data.high_score
+	end
+end
 
 local HEX_E1 = vmath.vector3(M.SPACING, 0, 0)
 local HEX_E2 = vmath.vector3(M.SPACING * 0.5, M.SPACING * 0.8660254, 0)
@@ -322,6 +336,10 @@ end
 return component
 end
 local function push_score()
+if M.score > M.high_score then
+	M.high_score = M.score
+	sys.save(save_path(), { high_score = M.high_score })
+end
 msg.post("/ui#panel", "update_score", { score = M.score })
 end
 
