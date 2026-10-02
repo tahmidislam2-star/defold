@@ -122,9 +122,8 @@ local function start_wave(self, initial_spawn_timer)
 end
 
 function init(self)
-	-- if defos then
-	-- 	defos.set_cursor_visible(false) #turn on later- mouse hide
-	-- end
+	game_state.reset()
+	enemy_manager.reset()
 	self.wave_number = 1
 	enemy_manager.load_high_score()
 	enemy_manager.reset_score()

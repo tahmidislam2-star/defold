@@ -348,6 +348,13 @@ M.score = 0
 push_score()
 end
 
+function M.reset()
+	M.clusters = {}
+	M.enemies = {}
+	M.alive_count = 0
+	M.score = 0
+end
+
 local function award_points(slime_count, whole_cluster)
 local per_slime = M.POINTS_PER_SLIME
 if whole_cluster then

@@ -11,6 +11,31 @@ local JUMP_DURATION = 0.16
 local STAGGER = 0.05 -- delay added per letter
 local HOLD_DURATION = 0.9 -- fully visible, after the last letter lands
 local FADE_DURATION = 0.4
+local HOVER_SCALE_MULT = 1.08
+local PRESS_SCALE_MULT = 0.92
+local HOVER_DURATION = 0.1
+local PRESS_DURATION = 0.07
+local HOVER_LABEL_COLOR = vmath.vector4(0.2078, 0.5333, 0.3059, 1)
+local HOVER_BUTTON_COLOR = vmath.vector4(0.95, 0.95, 0.95, 1)
+local PRESS_BUTTON_COLOR = vmath.vector4(0.65, 0.65, 0.65, 1)
+
+local BUTTON_DEFS = {
+	{ id = "restart_button", label = "restart_label", message = "restart_game" },
+	{ id = "Mainmenu_button1", label = "restart_label1", message = "return_to_menu" },
+}
+
+local function set_hover(btn, hovering)
+	if btn.hovering == hovering then return end
+	btn.hovering = hovering
+
+	local scale = hovering and (btn.base_scale * HOVER_SCALE_MULT) or btn.base_scale
+	local button_color = hovering and HOVER_BUTTON_COLOR or btn.base_color
+	local label_color = hovering and HOVER_LABEL_COLOR or btn.base_label_color
+
+	gui.animate(btn.node, gui.PROP_SCALE, scale, gui.EASING_OUTQUAD, HOVER_DURATION)
+	gui.animate(btn.node, "color", button_color, gui.EASING_OUTQUAD, HOVER_DURATION)
+	gui.animate(btn.label, "color", label_color, gui.EASING_OUTQUAD, HOVER_DURATION)
+end
 
 local function clear_announcement(self)
 	if self.announce_nodes then
@@ -101,6 +126,21 @@ function init(self)
 	self.hearts_remaining = 3
 	msg.post(".", "acquire_input_focus")
 	gui.set_enabled(gui.get_node("game_over_group"), false)
+	self.leaving = false
+	self.buttons = {}
+	for _, def in ipairs(BUTTON_DEFS) do
+		local node = gui.get_node(def.id)
+		local label = gui.get_node(def.label)
+		table.insert(self.buttons, {
+			node = node,
+			label = label,
+			message = def.message,
+			base_scale = gui.get_scale(node),
+			base_color = gui.get_color(node),
+			base_label_color = gui.get_color(label),
+			hovering = false,
+		})
+	end
 end
 
 function on_message(self, message_id, message, sender)
@@ -134,24 +174,24 @@ function on_message(self, message_id, message, sender)
 end
 
 function on_input(self, action_id, action)
-	if action_id == hash("SHOOT") and action.pressed then
-		if not gui.is_enabled(gui.get_node("game_over_group")) then return end
+	if self.leaving then return end
+	if not gui.is_enabled(gui.get_node("game_over_group")) then return end
 
-		if gui.pick_node(gui.get_node("restart_button"), action.x, action.y) then
-			if html5 then
-				html5.run('document.location.reload();')
-			else
-				msg.post("@system:", "reboot")
+	if action_id == nil and action.x and action.y then
+		for _, btn in ipairs(self.buttons) do
+			set_hover(btn, gui.pick_node(btn.node, action.x, action.y))
+		end
+
+	elseif action_id == hash("SHOOT") and action.pressed then
+		for _, btn in ipairs(self.buttons) do
+			if gui.pick_node(btn.node, action.x, action.y) then
+				self.leaving = true
+				gui.animate(btn.node, "color", PRESS_BUTTON_COLOR, gui.EASING_OUTQUAD, PRESS_DURATION)
+				gui.animate(btn.node, gui.PROP_SCALE, btn.base_scale * PRESS_SCALE_MULT, gui.EASING_OUTQUAD, PRESS_DURATION, 0, function()
+					msg.post("main_menu:/menu#main_menu_ui", btn.message)
+				end)
+				return
 			end
-
-		elseif gui.pick_node(gui.get_node("Mainmenu_button1"), action.x, action.y) then
-			-- "main_menu" is main_menu.collection's own name (its internal
-			-- socket) - this game is loaded INTO it via a collection proxy,
-			-- so reaching back out to the menu needs that explicit socket.
-			msg.post("main_menu:/menu#main_menu_ui", "menu_reset")
-			msg.post("main_menu:/menu#main_menu_ui", "enable")
-			msg.post("main_menu:/menu#main_menu_ui", "acquire_input_focus")
-			msg.post("main_menu:/menu#game_proxy", "unload")
 		end
 	end
 end

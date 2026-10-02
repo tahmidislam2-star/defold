@@ -47,6 +47,7 @@ end
 
 -- fade in while popping up from small, then resume floating
 local function respawn_slime(self, slime)
+	if slime.alive then return end
 	if self.started then return end
 	slime.alive = true
 	gui.set_enabled(slime.node, true)
@@ -181,7 +182,33 @@ local function start_game(self)
 	end)
 	msg.post("#tutorial_proxy", "load")
 end
+local function unload_game()
+	msg.post("#game_proxy", "disable")
+	msg.post("#game_proxy", "final")
+	msg.post("#game_proxy", "unload")
+end
 
+-- bring the menu back after leaving the game
+local function show_menu(self)
+	self.started = false
+	self.hovering = false
+	gui.set_scale(self.button, self.base_scale)
+	gui.set_color(self.label, NORMAL_COLOR)
+
+	for _, id in ipairs(FADE_NODES) do
+		local ok, node = pcall(gui.get_node, id)
+		if ok then
+			gui.animate(node, "color.w", 1, gui.EASING_LINEAR, FADE_OUT_DURATION)
+		end
+	end
+	-- a slime popped right before Start never came back; bring it back now
+	for _, slime in ipairs(self.slimes) do
+		if not slime.alive then respawn_slime(self, slime) end
+	end
+
+	msg.post("#main_menu_ui", "enable")
+	msg.post("#main_menu_ui", "acquire_input_focus")
+end
 function on_input(self, action_id, action)
 	if self.started then return end
 
@@ -207,12 +234,29 @@ end
 function on_message(self, message_id, message, sender)
 	if message_id == hash("proxy_loaded") then
 		msg.post(sender, "enable")
+
 	elseif message_id == hash("start_main_game") then
 		-- sent by the tutorial when the player clicks to continue
 		msg.post("#tutorial_proxy", "disable")
 		msg.post("#tutorial_proxy", "final")
 		msg.post("#tutorial_proxy", "unload")
 		msg.post("#game_proxy", "load")
+
+	elseif message_id == hash("restart_game") then
+		-- unload the game, then reload it once the proxy confirms it's gone
+		self.pending_load = true
+		unload_game()
+
+	elseif message_id == hash("return_to_menu") then
+		self.pending_load = false
+		unload_game()
+		show_menu(self)
+
+	elseif message_id == hash("proxy_unloaded") then
+		if self.pending_load then
+			self.pending_load = false
+			msg.post("#game_proxy", "load")
+		end
 	end
 end
 function update(self, dt)
