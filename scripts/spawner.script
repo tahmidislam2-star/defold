@@ -107,9 +107,10 @@ end
 -- Shared by init() and the wave-advance logic below so both paths always
 -- make the same decision.
 local function start_wave(self, initial_spawn_timer)
-	msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number })
+	local boss_wave = is_boss_wave(self.wave_number)
+	msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number, is_boss = boss_wave })
 
-	if is_boss_wave(self.wave_number) then
+	if boss_wave then
 		factory.create("#bossfactory")
 		self.to_spawn = 0
 		self.state = "boss_fight"
