@@ -1,0 +1,4 @@
+images {
+  image: "/sprites/title.png"
+}
+extrude_borders: 2
