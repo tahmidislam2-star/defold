@@ -1,0 +1,4 @@
+images {
+  image: "/sprites/crosshair_tut.png"
+}
+extrude_borders: 2

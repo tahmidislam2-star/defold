@@ -18,6 +18,11 @@ local STAR_FADE_OUT = { 0.3, 0.8 }
 local STAR_SCALES = { 1, 2, 2.5 }
 local SCREEN_W = 640
 local SCREEN_H = 360
+
+local function rand_range(r)
+	return r[1] + math.random() * (r[2] - r[1])
+end
+
 local MENU_SLIMES = { "menu_slime1", "menu_slime2", "menu_slime3", "menu_slime4" }
 
 local BOB_HEIGHT = { 4, 9 } -- px each slime rises above its spot
@@ -90,16 +95,13 @@ end
 local function pop_slime(self, slime)
 	slime.alive = false
 	local pos = gui.get_position(slime.node)
-	gui.cancel_animation(slime.node, "position.y")
+	-- stop the float: a new animation on the same property replaces the running one
+	gui.animate(slime.node, "position.y", pos.y, gui.EASING_LINEAR, 0.01)
 	gui.set_enabled(slime.node, false)
 	pop_effect(pos)
 	timer.delay(RESPAWN_DELAY, false, function()
 		respawn_slime(self, slime)
 	end)
-end
-
-local function rand_range(r)
-	return r[1] + math.random() * (r[2] - r[1])
 end
 
 local function spawn_star(self)

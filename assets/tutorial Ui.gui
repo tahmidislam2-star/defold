@@ -1,0 +1,249 @@
+fonts {
+  name: "pixel"
+  font: "/game objects/pixel.font"
+}
+textures {
+  name: "bg"
+  texture: "/assets/bg.atlas"
+}
+textures {
+  name: "menu_player"
+  texture: "/assets/menu_player.atlas"
+}
+textures {
+  name: "menu_slimes"
+  texture: "/assets/menu_slimes.atlas"
+}
+textures {
+  name: "gun_tut"
+  texture: "/assets/gun_tut.atlas"
+}
+textures {
+  name: "crosshair_tut"
+  texture: "/assets/crosshair_tut.atlas"
+}
+textures {
+  name: "tut_heart"
+  texture: "/assets/tut_heart.atlas"
+}
+textures {
+  name: "pop_ring"
+  texture: "/assets/pop_ring.atlas"
+}
+nodes {
+  position {
+    x: 320.0
+    y: 180.0
+  }
+  type: TYPE_BOX
+  texture: "bg/bg"
+  id: "box"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 320.0
+    y: 319.0
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "How To Play"
+  font: "pixel"
+  id: "text"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 192.0
+    y: 260.0
+  }
+  scale {
+    x: 0.8
+    y: 0.8
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "- Press WASD to move "
+  font: "pixel"
+  id: "text1"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 301.0
+    y: 180.0
+  }
+  scale {
+    x: 0.8
+    y: 0.8
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "- Aim with mouse and press LMB to shoot slimes\n"
+  ""
+  font: "pixel"
+  id: "text2"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 284.0
+    y: 120.0
+  }
+  scale {
+    x: 0.8
+    y: 0.8
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "- Match 3 same colored slimes to pop"
+  font: "pixel"
+  id: "text3"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 262.0
+    y: 50.0
+  }
+  scale {
+    x: 0.8
+    y: 0.8
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "- Colliding with the slimes will damage you"
+  font: "pixel"
+  id: "text4"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 534.0
+    y: 9.0
+  }
+  scale {
+    x: 0.6
+    y: 0.8
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "Press LMB to continue"
+  font: "pixel"
+  id: "text5"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 352.0
+    y: 260.0
+  }
+  type: TYPE_BOX
+  texture: "menu_player/menu_player"
+  id: "Player"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 470.0
+    y: 85.0
+  }
+  scale {
+    x: 0.5
+    y: 0.5
+  }
+  type: TYPE_BOX
+  texture: "menu_slimes/menu_slime1"
+  id: "Slime2"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 448.0
+    y: 89.0
+  }
+  scale {
+    x: 0.5
+    y: 0.5
+  }
+  type: TYPE_BOX
+  texture: "menu_slimes/menu_slime1"
+  id: "Slime1"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 426.0
+    y: 85.0
+  }
+  scale {
+    x: 0.5
+    y: 0.5
+  }
+  type: TYPE_BOX
+  texture: "menu_slimes/menu_slime1"
+  id: "Slime"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 506.0
+    y: 149.0
+  }
+  type: TYPE_BOX
+  texture: "gun_tut/gun_tut"
+  id: "gun"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 602.0
+    y: 149.0
+  }
+  scale {
+    x: 0.5
+    y: 0.5
+  }
+  type: TYPE_BOX
+  texture: "crosshair_tut/crosshair_tut"
+  id: "gun1"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 548.0
+    y: 49.0
+  }
+  type: TYPE_BOX
+  texture: "tut_heart/heart_tut"
+  id: "box1"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+material: "/builtins/materials/gui.material"
+adjust_reference: ADJUST_REFERENCE_PARENT

@@ -1,0 +1,4 @@
+images {
+  image: "/sprites/heart_tut.png"
+}
+extrude_borders: 2

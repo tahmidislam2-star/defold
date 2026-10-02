@@ -23,6 +23,10 @@ textures {
   name: "menu_slimes"
   texture: "/assets/menu_slimes.atlas"
 }
+textures {
+  name: "pop_ring"
+  texture: "/assets/pop_ring.atlas"
+}
 nodes {
   position {
     x: 320.0
@@ -53,7 +57,7 @@ nodes {
   }
   size {
     x: 200.0
-    y: 100.0
+    y: 40.0
   }
   type: TYPE_BOX
   id: "Start button"
@@ -121,13 +125,47 @@ nodes {
 nodes {
   position {
     x: 608.0
-    y: 49.0
+    y: 63.0
   }
   type: TYPE_BOX
-  texture: "menu_slimes/menu_slime2"
+  texture: "menu_slimes/menu_slime4"
   id: "menu_slime4"
   inherit_alpha: true
   size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 320.0
+    y: 123.0
+  }
+  size {
+    x: 200.0
+    y: 40.0
+  }
+  type: TYPE_BOX
+  id: "credits button"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+  visible: false
+}
+nodes {
+  position {
+    y: 7.0
+  }
+  scale {
+    x: 0.5
+    y: 0.5
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "Credits"
+  font: "pixel"
+  id: "text1"
+  parent: "credits button"
+  inherit_alpha: true
 }
 material: "/builtins/materials/gui.material"
 adjust_reference: ADJUST_REFERENCE_PARENT
