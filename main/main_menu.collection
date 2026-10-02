@@ -1,2 +1,16 @@
 name: "main_menu"
 scale_along_z: 0
+embedded_instances {
+  id: "menu"
+  data: "components {\n"
+  "  id: \"main_menu_ui\"\n"
+  "  component: \"/assets/main_menu_ui.gui\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"game_proxy\"\n"
+  "  type: \"collectionproxy\"\n"
+  "  data: \"collection: \\\"/main/main.collection\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+}

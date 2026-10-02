@@ -1,2 +1,63 @@
+fonts {
+  name: "pixel"
+  font: "/game objects/pixel.font"
+}
+textures {
+  name: "bg"
+  texture: "/assets/bg.atlas"
+}
+textures {
+  name: "title"
+  texture: "/assets/title.atlas"
+}
+nodes {
+  position {
+    x: 320.0
+    y: 180.0
+  }
+  type: TYPE_BOX
+  texture: "bg/bg"
+  id: "bg"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 320.0
+    y: 245.0
+  }
+  type: TYPE_BOX
+  texture: "title/title"
+  id: "title"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 320.0
+    y: 155.0
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_BOX
+  id: "Start button"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+  visible: false
+}
+nodes {
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "Start"
+  font: "pixel"
+  id: "text"
+  parent: "Start button"
+  inherit_alpha: true
+}
 material: "/builtins/materials/gui.material"
 adjust_reference: ADJUST_REFERENCE_PARENT
