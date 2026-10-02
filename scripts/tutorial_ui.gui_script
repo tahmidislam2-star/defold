@@ -1,0 +1,144 @@
+-- ---------------------------------------------------------------- tuning
+local CONTINUE_DELAY = 2.0 -- seconds before "Press LMB to continue" appears
+
+local PLAYER_TILT = 10 -- degrees each way
+local PLAYER_TILT_TIME = 0.25 -- seconds per tilt
+
+local CROSSHAIR_RANGE = 22 -- px left/right of its spot
+local CROSSHAIR_PAUSE = 1.2 -- rest between sweeps
+
+local SLIME_NODES = { "Slime" } -- add "Slime1", "Slime2" to walk the whole row in together
+local SLIME_START_OFFSET = -36 -- 390 - 426: starts this far left of its own spot
+local SLIME_WALK_TIME = 1.6
+local SLIME_HOLD = 1.2
+
+local HEART_SHAKE_COUNT = 5
+local HEART_FALL_DISTANCE = 40
+local HEART_FALL_TIME = 0.6
+local HEART_PAUSE = 0.8
+
+-- -------------------------------------------------------- sequence helpers
+-- A sequence is a list of steps; each step starts something and calls done()
+-- when finished. The runner loops through the list forever.
+local function run(self, steps, i)
+	if i > #steps then i = 1 end
+	steps[i](function()
+		run(self, steps, i + 1)
+	end)
+end
+
+local function animate(node, prop, to, time, easing, delay)
+	return function(done)
+		gui.animate(node, prop, to, easing or gui.EASING_INOUTSINE, time, delay or 0, function() done() end)
+	end
+end
+
+local function wait(time)
+	return function(done)
+		timer.delay(time, false, function() done() end)
+	end
+end
+
+local function call(fn)
+	return function(done)
+		fn()
+		done()
+	end
+end
+
+-- -------------------------------------------------------------- animations
+local function animate_player(self)
+	local node = gui.get_node("Player")
+	-- ping-pong between -TILT and +TILT, staying in place
+	gui.set_rotation(node, vmath.vector3(0, 0, -PLAYER_TILT))
+	gui.animate(node, "rotation.z", PLAYER_TILT, gui.EASING_INOUTSINE, PLAYER_TILT_TIME, 0, nil, gui.PLAYBACK_LOOP_PINGPONG)
+end
+
+local function animate_crosshair(self)
+	local node = gui.get_node("crosshair")
+	local x = gui.get_position(node).x
+	run(self, {
+		animate(node, "position.x", x - CROSSHAIR_RANGE, 0.45),
+		animate(node, "position.x", x + CROSSHAIR_RANGE, 0.9),
+		animate(node, "position.x", x - CROSSHAIR_RANGE, 0.9),
+		animate(node, "position.x", x, 0.45),
+		wait(CROSSHAIR_PAUSE),
+	}, 1)
+end
+
+local function animate_slime(self, id)
+	local node = gui.get_node(id)
+	local base = gui.get_position(node)
+	local start = vmath.vector3(base.x + SLIME_START_OFFSET, base.y, base.z)
+	run(self, {
+		call(function()
+			gui.set_position(node, start)
+			gui.set_color(node, vmath.vector4(1, 1, 1, 0))
+		end),
+		animate(node, "color.w", 1, 0.2, gui.EASING_LINEAR),
+		animate(node, "position.x", base.x, SLIME_WALK_TIME, gui.EASING_LINEAR),
+		wait(SLIME_HOLD),
+		animate(node, "color.w", 0, 0.25, gui.EASING_LINEAR),
+	}, 1)
+end
+
+local function animate_heart(self)
+	local node = gui.get_node("heart")
+	local base = gui.get_position(node)
+
+	local steps = {
+		call(function()
+			gui.set_position(node, base)
+			gui.set_rotation(node, vmath.vector3(0, 0, 0))
+			gui.set_color(node, vmath.vector4(1, 1, 1, 1))
+		end),
+		wait(0.6),
+	}
+	-- shake: quick rotation back and forth
+	for i = 1, HEART_SHAKE_COUNT do
+		local angle = (i % 2 == 0) and 12 or -12
+		table.insert(steps, animate(node, "rotation.z", angle, 0.05, gui.EASING_LINEAR))
+	end
+	table.insert(steps, animate(node, "rotation.z", 0, 0.05, gui.EASING_LINEAR))
+	-- fall while fading out
+	table.insert(steps, function(done)
+		gui.animate(node, "color.w", 0, gui.EASING_LINEAR, HEART_FALL_TIME * 0.6, HEART_FALL_TIME * 0.4)
+		gui.animate(node, "rotation.z", 25, gui.EASING_INQUAD, HEART_FALL_TIME)
+		gui.animate(node, "position.y", base.y - HEART_FALL_DISTANCE, gui.EASING_INQUAD, HEART_FALL_TIME, 0, function() done() end)
+	end)
+	table.insert(steps, wait(HEART_PAUSE))
+
+	run(self, steps, 1)
+end
+
+-- ---------------------------------------------------------------- lifecycle
+function init(self)
+	msg.post(".", "acquire_input_focus")
+
+	self.can_continue = false
+	self.done = false
+
+	-- "Press LMB to continue" is hidden at first
+	self.continue_node = gui.get_node("text5")
+	gui.set_enabled(self.continue_node, false)
+	timer.delay(CONTINUE_DELAY, false, function()
+		self.can_continue = true
+		gui.set_enabled(self.continue_node, true)
+		gui.set_color(self.continue_node, vmath.vector4(1, 1, 1, 0))
+		gui.animate(self.continue_node, "color.w", 1, gui.EASING_OUTQUAD, 0.3)
+	end)
+
+	animate_player(self)
+	animate_crosshair(self)
+	for _, id in ipairs(SLIME_NODES) do
+		animate_slime(self, id)
+	end
+	animate_heart(self)
+end
+
+function on_input(self, action_id, action)
+	if self.can_continue and not self.done and action_id == hash("SHOOT") and action.pressed then
+		self.done = true
+		msg.post("main_menu:/menu#main_menu_ui", "start_main_game")
+	end
+end
