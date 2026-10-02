@@ -19,15 +19,30 @@ local function is_boss_wave(wave_number)
 	return  wave_number % 5 == 0 --wave_number == 1 or
 end
 
-local CLUSTER_SHAPES = {
-	[1] = {{0,0}},
-	[2] = {{0,0},{1,0}},
-	[3] = {{0,0},{1,0},{0,1}},
-	[4] = {{0,0},{1,0},{0,1},{1,1}},
-	[5] = {{0,0},{1,0},{-1,0},{0,1},{0,-1}},
-}
+local MIN_CLUSTER_SIZE = 5
+local MAX_CLUSTER_SIZE = 12
+local EARLY_WAVES = 5
+local EARLY_MAX_CLUSTER_SIZE = 9
 
--- Bigger clusters feel heavier and move slower; solo slimes dart in fast.
+local HEX_NEIGHBORS = { {1,0}, {-1,0}, {0,1}, {0,-1}, {1,-1}, {-1,1} }
+
+-- Grows a random connected blob of `size` hex cells, starting from (0,0).
+local function random_cluster_shape(size)
+	local cells = { {0, 0} }
+	local taken = { ["0,0"] = true }
+	while #cells < size do
+		local base = cells[math.random(#cells)]
+		local d = HEX_NEIGHBORS[math.random(#HEX_NEIGHBORS)]
+		local q, r = base[1] + d[1], base[2] + d[2]
+		local key = q .. "," .. r
+		if not taken[key] then
+			taken[key] = true
+			table.insert(cells, { q, r })
+		end
+	end
+	return cells
+end
+
 local CLUSTER_SPEED_BY_SIZE = {
 	[1] = 50,
 	[2] = 45,
@@ -36,6 +51,10 @@ local CLUSTER_SPEED_BY_SIZE = {
 	[5] = 28,
 }
 
+local function cluster_speed(size)
+	return CLUSTER_SPEED_BY_SIZE[size] or math.max (32 - (size - 5) * 1.5)
+end
+
 go.property("player_id", msg.url("player"))
 
 local function random_color()
@@ -43,7 +62,7 @@ local function random_color()
 end
 
 local function wave_target(wave_number)
-	return 4 + 2 * (wave_number - 1) -- wave 1 = 4, wave 2 = 6, wave 3 = 8, ...
+	return 2 + (wave_number - 1) -- wave 1 = 2 clusters, wave 2 = 3, wave 3 = 4, ...
 end
 
 local function random_spawn_anchor()
@@ -63,11 +82,12 @@ end
 
 -- Spawns one cluster sized at most `self.to_spawn`, returns how many it actually used.
 local function spawn_cluster(self)
-	local size = math.min(math.random(1, 5), self.to_spawn)
-	local shape = CLUSTER_SHAPES[size]
+	local max_size = (self.wave_number <= EARLY_WAVES) and EARLY_MAX_CLUSTER_SIZE or MAX_CLUSTER_SIZE
+	local size = math.random(MIN_CLUSTER_SIZE, max_size)
+	local shape = random_cluster_shape(size)
 	local anchor = random_spawn_anchor()
 	local cluster_id = enemy_manager.new_cluster_id()
-	local speed = CLUSTER_SPEED_BY_SIZE[size]
+	local speed = cluster_speed(size)
 
 	enemy_manager.create_cluster(cluster_id, anchor, speed)
 
@@ -80,7 +100,7 @@ local function spawn_cluster(self)
 		msg.post(id, "setup", { color = color })
 	end
 
-	return size
+	return 1 -- one cluster spawned
 end
 
 -- Starts self.wave_number's wave: a boss encounter or a normal spawn wave.

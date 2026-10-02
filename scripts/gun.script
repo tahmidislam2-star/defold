@@ -65,6 +65,7 @@ function fire_bullet(self, angle)
 end
 
 function update(self, dt)
+	if game_state.game_over then return end
 	local player_pos = go.get_position(self.player_id)
 	local mouse_world = vmath.vector3(self.mouse_x, self.mouse_y, 0)
 

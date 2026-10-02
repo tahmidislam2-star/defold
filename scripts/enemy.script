@@ -141,24 +141,12 @@ function on_message(self, message_id, message, sender)
 		start_fade_out(self)
 
 	elseif message_id == hash("freeze") then
-		if self.bursting or self.frozen or self.thrown then return end
-		if self.is_ring then
-			-- hit the player: burst away from them instead of freezing/rejoining
-			local away = go.get_position() - go.get_position("/player")
-			away.z = 0
-			if vmath.length_sqr(away) < 0.0001 then away = vmath.vector3(0, 1, 0) end
-			start_burst(self, vmath.normalize(away))
-			return
-		end
-		self.left_cluster = true
-		enemy_manager.unregister(go.get_id())
-		msg.post("#collisionobject", "disable")
-		self.frozen = true
-		self.freeze_timer = FREEZE_DURATION
-		stop_squish(self) -- hold a static pose while frozen
-		go.animate("#sprite", "tint.w", go.PLAYBACK_LOOP_PINGPONG, 0.2, go.EASING_LINEAR, BLINK_DURATION)
+		-- hit by the player: this slime is destroyed on the spot
+		if self.bursting then return end
+		spawn_pop_effect(self)
+		go.delete()
 
-	elseif message_id == hash("ring_flicker") then
+		elseif message_id == hash("ring_flicker") then
 		-- Boss chain spawned: flicker and stay harmless until "ring_arm".
 		self.is_ring = true
 		msg.post("#collisionobject", "disable")
