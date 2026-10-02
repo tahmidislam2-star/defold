@@ -19,6 +19,7 @@ end
 
 function init(self)
 	self.input = vmath.vector3(0, 0, 0)
+	self.current_angle = 0
 	msg.post(".", "acquire_input_focus")
 
 	self.queue = {}
@@ -66,6 +67,7 @@ end
 
 function update(self, dt)
 	if game_state.game_over then return end
+	if not self.mouse_x then return end
 	local player_pos = go.get_position(self.player_id)
 	local mouse_world = vmath.vector3(self.mouse_x, self.mouse_y, 0)
 

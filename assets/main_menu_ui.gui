@@ -11,6 +11,10 @@ textures {
   name: "title"
   texture: "/assets/title.atlas"
 }
+textures {
+  name: "star"
+  texture: "/assets/star.atlas"
+}
 nodes {
   position {
     x: 320.0

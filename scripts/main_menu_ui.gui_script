@@ -9,6 +9,49 @@ local NORMAL_COLOR = vmath.vector4(1, 1, 1, 1)
 
 local FADE_NODES = { "bg", "title", "Start button" } -- "text" fades with it via inherit_alpha
 
+local STAR_MAX = 50 -- most stars visible at once
+local STAR_SPAWN_MIN = 0.08 -- seconds between new stars
+local STAR_SPAWN_MAX = 0.35
+local STAR_FADE_IN = { 0.3, 0.8 }
+local STAR_HOLD = { 0.2, 1.2 }
+local STAR_FADE_OUT = { 0.3, 0.8 }
+local STAR_SCALES = { 1, 2, 2.5 }
+local SCREEN_W = 640
+local SCREEN_H = 360
+
+local function rand_range(r)
+	return r[1] + math.random() * (r[2] - r[1])
+end
+
+local function spawn_star(self)
+	if self.star_count >= STAR_MAX then return end
+
+	local pos = vmath.vector3(math.random(8, SCREEN_W - 8), math.random(8, SCREEN_H - 8), 0)
+	local node = gui.new_box_node(pos, vmath.vector3(3, 3, 0))
+	gui.set_texture(node, "star")
+	gui.play_flipbook(node, "stars")
+
+	local s = STAR_SCALES[math.random(#STAR_SCALES)]
+	local peak = 0.5 + math.random() * 0.5 -- some stars twinkle dimmer than others
+	gui.set_scale(node, vmath.vector3(s * 0.6, s * 0.6, 1))
+	gui.set_color(node, vmath.vector4(1, 1, 0.9, 0))
+
+	-- keep stars behind the title and button
+	if gui.move_above then gui.move_above(node, self.bg_node) end
+
+	self.star_count = self.star_count + 1
+	local fade_in = rand_range(STAR_FADE_IN)
+	local fade_out = rand_range(STAR_FADE_OUT)
+
+	gui.animate(node, "scale", vmath.vector3(s, s, 1), gui.EASING_OUTQUAD, fade_in)
+	gui.animate(node, "color.w", peak, gui.EASING_INOUTSINE, fade_in, 0, function(self)
+		gui.animate(node, "color.w", 0, gui.EASING_INOUTSINE, fade_out, rand_range(STAR_HOLD), function(self)
+			gui.delete_node(node)
+			self.star_count = self.star_count - 1
+		end)
+	end)
+end
+
 function init(self)
 	msg.post(".", "acquire_input_focus")
 	self.button = gui.get_node("Start button") -- hit-area + scale pivot
@@ -16,6 +59,9 @@ function init(self)
 	self.base_scale = gui.get_scale(self.button)
 	self.hovering = false
 	self.started = false
+	self.bg_node = gui.get_node("bg")
+	self.star_count = 0
+	self.star_timer = 0
 end
 
 local function set_hover(self, hovering)
@@ -65,5 +111,14 @@ end
 function on_message(self, message_id, message, sender)
 	if message_id == hash("proxy_loaded") then
 		msg.post(sender, "enable")
+	end
+end
+
+function update(self, dt)
+	if self.started then return end
+	self.star_timer = self.star_timer - dt
+	if self.star_timer <= 0 then
+		self.star_timer = STAR_SPAWN_MIN + math.random() * (STAR_SPAWN_MAX - STAR_SPAWN_MIN)
+		spawn_star(self)
 	end
 end

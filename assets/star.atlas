@@ -1,0 +1,4 @@
+images {
+  image: "/sprites/stars.png"
+}
+extrude_borders: 2
