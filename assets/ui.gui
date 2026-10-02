@@ -243,5 +243,20 @@ nodes {
   parent: "restart_button"
   inherit_alpha: true
 }
+nodes {
+  position {
+    x: 219.0
+    y: 173.0
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "Wave 1 Starting"
+  font: "pixel"
+  id: "wave_info"
+  inherit_alpha: true
+}
 material: "/builtins/materials/gui.material"
 adjust_reference: ADJUST_REFERENCE_PARENT
