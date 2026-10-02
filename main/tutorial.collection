@@ -2,9 +2,5 @@ name: "tutorial"
 scale_along_z: 0
 embedded_instances {
   id: "ui"
-  data: "components {\n"
-  "  id: \"tutorial Ui\"\n"
-  "  component: \"/assets/tutorial Ui.gui\"\n"
-  "}\n"
-  ""
+  data: ""
 }

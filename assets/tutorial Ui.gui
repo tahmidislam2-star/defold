@@ -230,7 +230,7 @@ nodes {
   }
   type: TYPE_BOX
   texture: "crosshair_tut/crosshair_tut"
-  id: "gun1"
+  id: "crosshair"
   inherit_alpha: true
   size_mode: SIZE_MODE_AUTO
 }
@@ -241,7 +241,7 @@ nodes {
   }
   type: TYPE_BOX
   texture: "tut_heart/heart_tut"
-  id: "box1"
+  id: "heart"
   inherit_alpha: true
   size_mode: SIZE_MODE_AUTO
 }
