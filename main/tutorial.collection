@@ -6,11 +6,5 @@ embedded_instances {
   "  id: \"tutorial Ui\"\n"
   "  component: \"/assets/tutorial Ui.gui\"\n"
   "}\n"
-  "embedded_components {\n"
-  "  id: \"game_proxy\"\n"
-  "  type: \"collectionproxy\"\n"
-  "  data: \"collection: \\\"/main/main.collection\\\"\\n"
-  "\"\n"
-  "}\n"
   ""
 }

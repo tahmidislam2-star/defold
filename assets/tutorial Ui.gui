@@ -51,6 +51,11 @@ nodes {
     x: 200.0
     y: 100.0
   }
+  color {
+    x: 0.2
+    y: 0.5176471
+    z: 0.36862746
+  }
   type: TYPE_TEXT
   text: "How To Play"
   font: "pixel"
@@ -59,12 +64,12 @@ nodes {
 }
 nodes {
   position {
-    x: 192.0
+    x: 190.0
     y: 260.0
   }
   scale {
-    x: 0.8
-    y: 0.8
+    x: 0.6
+    y: 0.6
   }
   size {
     x: 200.0
@@ -78,12 +83,12 @@ nodes {
 }
 nodes {
   position {
-    x: 301.0
-    y: 180.0
+    x: 245.0
+    y: 205.0
   }
   scale {
-    x: 0.8
-    y: 0.8
+    x: 0.6
+    y: 0.6
   }
   size {
     x: 200.0
@@ -98,12 +103,12 @@ nodes {
 }
 nodes {
   position {
-    x: 284.0
-    y: 120.0
+    x: 261.0
+    y: 150.0
   }
   scale {
-    x: 0.8
-    y: 0.8
+    x: 0.6
+    y: 0.6
   }
   size {
     x: 200.0
@@ -117,12 +122,12 @@ nodes {
 }
 nodes {
   position {
-    x: 262.0
-    y: 50.0
+    x: 215.0
+    y: 95.0
   }
   scale {
-    x: 0.8
-    y: 0.8
+    x: 0.6
+    y: 0.6
   }
   size {
     x: 200.0
@@ -155,8 +160,12 @@ nodes {
 }
 nodes {
   position {
-    x: 352.0
+    x: 309.0
     y: 260.0
+  }
+  scale {
+    x: 0.7
+    y: 0.7
   }
   type: TYPE_BOX
   texture: "menu_player/menu_player"
@@ -166,8 +175,8 @@ nodes {
 }
 nodes {
   position {
-    x: 470.0
-    y: 85.0
+    x: 530.0
+    y: 147.0
   }
   scale {
     x: 0.5
@@ -181,8 +190,8 @@ nodes {
 }
 nodes {
   position {
-    x: 448.0
-    y: 89.0
+    x: 508.0
+    y: 151.0
   }
   scale {
     x: 0.5
@@ -196,8 +205,8 @@ nodes {
 }
 nodes {
   position {
-    x: 426.0
-    y: 85.0
+    x: 486.0
+    y: 147.0
   }
   scale {
     x: 0.5
@@ -212,7 +221,7 @@ nodes {
 nodes {
   position {
     x: 506.0
-    y: 149.0
+    y: 205.0
   }
   type: TYPE_BOX
   texture: "gun_tut/gun_tut"
@@ -223,7 +232,7 @@ nodes {
 nodes {
   position {
     x: 602.0
-    y: 149.0
+    y: 205.0
   }
   scale {
     x: 0.5
@@ -237,8 +246,8 @@ nodes {
 }
 nodes {
   position {
-    x: 548.0
-    y: 49.0
+    x: 427.0
+    y: 93.0
   }
   type: TYPE_BOX
   texture: "tut_heart/heart_tut"

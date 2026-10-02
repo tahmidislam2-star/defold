@@ -13,7 +13,7 @@ local SLIME_WALK_TIME = 1.6
 local SLIME_HOLD = 1.2
 
 local HEART_SHAKE_COUNT = 5
-local HEART_FALL_DISTANCE = 40
+local HEART_FALL_DISTANCE = 20
 local HEART_FALL_TIME = 0.6
 local HEART_PAUSE = 0.8
 
@@ -50,8 +50,8 @@ end
 local function animate_player(self)
 	local node = gui.get_node("Player")
 	-- ping-pong between -TILT and +TILT, staying in place
-	gui.set_rotation(node, vmath.vector3(0, 0, -PLAYER_TILT))
-	gui.animate(node, "rotation.z", PLAYER_TILT, gui.EASING_INOUTSINE, PLAYER_TILT_TIME, 0, nil, gui.PLAYBACK_LOOP_PINGPONG)
+	gui.set_euler(node, vmath.vector3(0, 0, -PLAYER_TILT))
+	gui.animate(node, "euler.z", PLAYER_TILT, gui.EASING_INOUTSINE, PLAYER_TILT_TIME, 0, nil, gui.PLAYBACK_LOOP_PINGPONG)
 end
 
 local function animate_crosshair(self)
@@ -89,7 +89,7 @@ local function animate_heart(self)
 	local steps = {
 		call(function()
 			gui.set_position(node, base)
-			gui.set_rotation(node, vmath.vector3(0, 0, 0))
+			gui.set_euler(node, vmath.vector3(0, 0, 0))
 			gui.set_color(node, vmath.vector4(1, 1, 1, 1))
 		end),
 		wait(0.6),
@@ -97,13 +97,13 @@ local function animate_heart(self)
 	-- shake: quick rotation back and forth
 	for i = 1, HEART_SHAKE_COUNT do
 		local angle = (i % 2 == 0) and 12 or -12
-		table.insert(steps, animate(node, "rotation.z", angle, 0.05, gui.EASING_LINEAR))
+		table.insert(steps, animate(node, "euler.z", angle, 0.05, gui.EASING_LINEAR))
 	end
-	table.insert(steps, animate(node, "rotation.z", 0, 0.05, gui.EASING_LINEAR))
+	table.insert(steps, animate(node, "euler.z", 0, 0.05, gui.EASING_LINEAR))
 	-- fall while fading out
 	table.insert(steps, function(done)
 		gui.animate(node, "color.w", 0, gui.EASING_LINEAR, HEART_FALL_TIME * 0.6, HEART_FALL_TIME * 0.4)
-		gui.animate(node, "rotation.z", 25, gui.EASING_INQUAD, HEART_FALL_TIME)
+		gui.animate(node, "euler.z", 25, gui.EASING_INQUAD, HEART_FALL_TIME)
 		gui.animate(node, "position.y", base.y - HEART_FALL_DISTANCE, gui.EASING_INQUAD, HEART_FALL_TIME, 0, function() done() end)
 	end)
 	table.insert(steps, wait(HEART_PAUSE))
