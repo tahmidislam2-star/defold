@@ -87,10 +87,10 @@ local function start_game(self)
 	end
 
 	timer.delay(FADE_OUT_DURATION, false, function()
-		msg.post(".", "release_input_focus")
+		-- keep input focus: the game proxy lives on this same game object
+		-- and only receives input while it has focus
 		msg.post("#main_menu_ui", "disable")
 	end)
-
 	msg.post("#game_proxy", "load")
 end
 

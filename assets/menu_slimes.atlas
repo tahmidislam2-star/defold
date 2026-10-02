@@ -1,0 +1,13 @@
+images {
+  image: "/sprites/menu_slime1.png"
+}
+images {
+  image: "/sprites/menu_slime2.png"
+}
+images {
+  image: "/sprites/menu_slime3.png"
+}
+images {
+  image: "/sprites/menu_slime4.png"
+}
+extrude_borders: 2

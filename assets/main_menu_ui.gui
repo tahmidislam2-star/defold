@@ -15,6 +15,14 @@ textures {
   name: "star"
   texture: "/assets/star.atlas"
 }
+textures {
+  name: "menu_player"
+  texture: "/assets/menu_player.atlas"
+}
+textures {
+  name: "menu_slimes"
+  texture: "/assets/menu_slimes.atlas"
+}
 nodes {
   position {
     x: 320.0
@@ -30,6 +38,7 @@ nodes {
   position {
     x: 320.0
     y: 245.0
+    z: 0.1
   }
   type: TYPE_BOX
   texture: "title/title"
@@ -63,6 +72,62 @@ nodes {
   id: "text"
   parent: "Start button"
   inherit_alpha: true
+}
+nodes {
+  position {
+    x: 54.0
+    y: 53.0
+    z: 0.1
+  }
+  type: TYPE_BOX
+  texture: "menu_player/menu_player"
+  id: "menu_player"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 95.0
+    y: 175.0
+  }
+  type: TYPE_BOX
+  texture: "menu_slimes/menu_slime1"
+  id: "menu_slime1"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 541.0
+    y: 148.0
+  }
+  type: TYPE_BOX
+  texture: "menu_slimes/menu_slime2"
+  id: "menu_slime2"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 222.0
+    y: 56.0
+  }
+  type: TYPE_BOX
+  texture: "menu_slimes/menu_slime3"
+  id: "menu_slime3"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+}
+nodes {
+  position {
+    x: 608.0
+    y: 49.0
+  }
+  type: TYPE_BOX
+  texture: "menu_slimes/menu_slime2"
+  id: "menu_slime4"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
 }
 material: "/builtins/materials/gui.material"
 adjust_reference: ADJUST_REFERENCE_PARENT
