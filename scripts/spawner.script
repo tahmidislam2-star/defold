@@ -10,6 +10,7 @@ local BOUND_MAX_Y = 342
 local SPAWN_MARGIN = 120
 local SPAWN_INTERVAL = 1.2   -- gap between clusters WITHIN a wave
 local NEXT_WAVE_DELAY = 2.0  -- pause after a wave clears, before the next starts
+local MAX_ACTIVE_CLUSTERS = 4 -- never more than this many spawned clusters alive at once
 local game_state = require("scripts.game_state")
 
 -- Boss appears every 5 waves. The `wave_number == 1` clause is TEMPORARY,
@@ -80,6 +81,23 @@ local function random_spawn_anchor()
 	return vmath.vector3(x, y, 0)
 end
 
+-- How many of THIS spawner's own clusters are still alive right now. Also
+-- prunes any that have fully cleared, so the list never grows unbounded.
+local function count_active_clusters(self)
+	local count = 0
+	local i = 1
+	while i <= #self.active_cluster_ids do
+		local cid = self.active_cluster_ids[i]
+		if enemy_manager.cluster_member_count(cid) > 0 then
+			count = count + 1
+			i = i + 1
+		else
+			table.remove(self.active_cluster_ids, i)
+		end
+	end
+	return count
+end
+
 -- Spawns one cluster sized at most `self.to_spawn`, returns how many it actually used.
 local function spawn_cluster(self)
 	local max_size = (self.wave_number <= EARLY_WAVES) and EARLY_MAX_CLUSTER_SIZE or MAX_CLUSTER_SIZE
@@ -90,6 +108,7 @@ local function spawn_cluster(self)
 	local speed = cluster_speed(size)
 
 	enemy_manager.create_cluster(cluster_id, anchor, speed)
+	table.insert(self.active_cluster_ids, cluster_id)
 
 	for _, coord in ipairs(shape) do
 		local offset = enemy_manager.hex_offset(coord[1], coord[2])
@@ -107,6 +126,7 @@ end
 -- Shared by init() and the wave-advance logic below so both paths always
 -- make the same decision.
 local function start_wave(self, initial_spawn_timer)
+	self.active_cluster_ids = {}
 	local boss_wave = is_boss_wave(self.wave_number)
 	msg.post("/ui#panel", "update_wave", { wave_number = self.wave_number, is_boss = boss_wave })
 
@@ -143,7 +163,7 @@ function update(self, dt)
 
 	if self.state == "spawning" then
 		self.spawn_timer = self.spawn_timer - dt
-		if self.spawn_timer <= 0 and self.to_spawn > 0 then
+		if self.spawn_timer <= 0 and self.to_spawn > 0 and count_active_clusters(self) < MAX_ACTIVE_CLUSTERS then
 			self.spawn_timer = SPAWN_INTERVAL
 			self.to_spawn = self.to_spawn - spawn_cluster(self)
 		end
