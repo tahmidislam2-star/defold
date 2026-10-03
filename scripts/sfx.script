@@ -1,0 +1,12 @@
+local STEP = 0.07 -- seconds between each pop sound
+local MAX_SOUNDS = 8 -- cap, so a huge match doesn't turn into noise
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("pop_sounds") then
+		for i = 1, math.min(message.count, MAX_SOUNDS) do
+			timer.delay((i - 1) * STEP, false, function()
+				msg.post("#bubble_pop", "play_sound")
+			end)
+		end
+	end
+end

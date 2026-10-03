@@ -167,7 +167,7 @@ function on_message(self, message_id, message, sender)
 		end
 
 	elseif message_id == hash("show_game_over") then
-		msg.post("/sfx#game_over", "play_sound")
+		msg.post("/sfx#Game_over", "play_sound")
 		msg.post("/sfx#main_music", "stop_sound") -- optional: stops the music so the jingle is clear
 		gui.set_text(gui.get_node("final_score_label"), "Score: " .. string.format("%04d", message.score or 0))
 		gui.set_text(gui.get_node("high_score_label"), "High Score: " .. string.format("%04d", message.high_score or 0))
@@ -187,6 +187,7 @@ function on_input(self, action_id, action)
 	elseif action_id == hash("SHOOT") and action.pressed then
 		for _, btn in ipairs(self.buttons) do
 			if gui.pick_node(btn.node, action.x, action.y) then
+				msg.post("/sfx#button_click", "play_sound")
 				self.leaving = true
 				gui.animate(btn.node, "color", PRESS_BUTTON_COLOR, gui.EASING_OUTQUAD, PRESS_DURATION)
 				gui.animate(btn.node, gui.PROP_SCALE, btn.base_scale * PRESS_SCALE_MULT, gui.EASING_OUTQUAD, PRESS_DURATION, 0, function()

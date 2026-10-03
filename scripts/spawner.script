@@ -142,6 +142,7 @@ local function start_wave(self, initial_spawn_timer)
 end
 
 function init(self)
+	msg.post("/sfx#main_music", "play_sound", { gain = 0.5 })
 	game_state.reset()
 	game_state.set_cursor_visible(false)
 	enemy_manager.reset()

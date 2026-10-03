@@ -400,8 +400,8 @@ for _ in pairs(matched) do matched_count = matched_count + 1 end
 if matched_count < 3 then
 	return -- no match yet, the new slime just joins the cluster
 end
-msg.post("/sfx#pop", "play_sound")
 
+msg.post("/sfx", "pop_sounds", { count = matched_count })
 -- Size counted AFTER the new slime joins (pre_attach_size + 1) - this is
 -- what "the cluster" means for the explode rule below.
 local post_attach_size = pre_attach_size + 1
@@ -416,6 +416,7 @@ if post_attach_size <= 6 and not cluster.is_boss then
 		dir = vmath.normalize(dir)
 		msg.post(enemy_id, "burst", { direction = dir, effect = true })
 	end
+	msg.post("/sfx", "bubble_burst")
 	award_points(post_attach_size, true)
 	M.clusters[hit_data.cluster_id] = nil
 	return
