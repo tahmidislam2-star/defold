@@ -167,5 +167,24 @@ nodes {
   parent: "credits button"
   inherit_alpha: true
 }
+nodes {
+  position {
+    x: 320.0
+    y: 11.0
+  }
+  scale {
+    x: 0.5
+    y: 0.5
+  }
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_TEXT
+  text: "High Score: 0000"
+  font: "pixel"
+  id: "highscore"
+  inherit_alpha: true
+}
 material: "/builtins/materials/gui.material"
 adjust_reference: ADJUST_REFERENCE_PARENT
