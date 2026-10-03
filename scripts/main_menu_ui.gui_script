@@ -106,6 +106,7 @@ local function pop_slime(self, slime)
 	timer.delay(RESPAWN_DELAY, false, function()
 		respawn_slime(self, slime)
 	end)
+	msg.post("/go#bubble_pop", "play_sound")
 end
 
 local function spawn_star(self)
