@@ -119,6 +119,7 @@ function on_message(self, message_id, message, sender)
 		if message.other_group == hash("enemy") then
 			self.hearts = self.hearts - 1
 			msg.post("/ui#panel", "lose_heart", {})
+			msg.post("/sfx#hurt", "play_sound")
 			msg.post(message.other_id, "freeze")
 
 			self.invulnerable = true

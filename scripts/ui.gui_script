@@ -167,6 +167,8 @@ function on_message(self, message_id, message, sender)
 		end
 
 	elseif message_id == hash("show_game_over") then
+		msg.post("/sfx#game_over", "play_sound")
+		msg.post("/sfx#main_music", "stop_sound") -- optional: stops the music so the jingle is clear
 		gui.set_text(gui.get_node("final_score_label"), "Score: " .. string.format("%04d", message.score or 0))
 		gui.set_text(gui.get_node("high_score_label"), "High Score: " .. string.format("%04d", message.high_score or 0))
 		gui.set_enabled(gui.get_node("game_over_group"), true)

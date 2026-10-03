@@ -27,8 +27,8 @@ embedded_instances {
   "  component: \"/assets/main_menu_music.sound\"\n"
   "}\n"
   "components {\n"
-  "  id: \"button click\"\n"
-  "  component: \"/assets/button click.sound\"\n"
+  "  id: \"button_click\"\n"
+  "  component: \"/assets/button_click.sound\"\n"
   "}\n"
   ""
 }

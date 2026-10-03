@@ -149,3 +149,31 @@ embedded_instances {
     z: 0.5
   }
 }
+embedded_instances {
+  id: "sfx"
+  data: "components {\n"
+  "  id: \"button_click\"\n"
+  "  component: \"/assets/button_click.sound\"\n"
+  "}\n"
+  "components {\n"
+  "  id: \"main_music\"\n"
+  "  component: \"/assets/main_music.sound\"\n"
+  "}\n"
+  "components {\n"
+  "  id: \"fire\"\n"
+  "  component: \"/assets/fire.sound\"\n"
+  "}\n"
+  "components {\n"
+  "  id: \"bubble_pop\"\n"
+  "  component: \"/assets/bubble_pop.sound\"\n"
+  "}\n"
+  "components {\n"
+  "  id: \"player_hurt\"\n"
+  "  component: \"/assets/player_hurt.sound\"\n"
+  "}\n"
+  "components {\n"
+  "  id: \"Game_over\"\n"
+  "  component: \"/assets/Game_over.sound\"\n"
+  "}\n"
+  ""
+}

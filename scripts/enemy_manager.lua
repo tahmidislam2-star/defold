@@ -400,6 +400,7 @@ for _ in pairs(matched) do matched_count = matched_count + 1 end
 if matched_count < 3 then
 	return -- no match yet, the new slime just joins the cluster
 end
+msg.post("/sfx#pop", "play_sound")
 
 -- Size counted AFTER the new slime joins (pre_attach_size + 1) - this is
 -- what "the cluster" means for the explode rule below.
