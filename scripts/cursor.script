@@ -10,6 +10,9 @@ function init(self)
 end
 
 function on_input(self, action_id, action)
+	if action_id == hash("TOGGLE_CURSOR") and action.pressed then
+		game_state.set_cursor_visible(not game_state.cursor_visible)
+	end
 	if action_id == nil and action.x and action.y then
 		self.mouse_x = action.x
 		self.mouse_y = action.y

@@ -7,7 +7,7 @@ local FADE_OUT_DURATION = 0.3
 local HOVER_COLOR = vmath.vector4(0.2078, 0.5333, 0.3059, 1) -- warm highlight tint
 local NORMAL_COLOR = vmath.vector4(1, 1, 1, 1)
 
-local FADE_NODES = { "bg", "title", "Start button", "menu_player", "menu_slime1", "menu_slime2", "menu_slime3", "menu_slime4" } -- "text" fades with it via inherit_alpha
+local FADE_NODES = { "bg", "title", "Start button", "menu_player", "menu_slime1", "menu_slime2", "menu_slime3", "menu_slime4", "highscore" } -- "text" fades with it via inherit_alpha
 
 local STAR_MAX = 50 -- most stars visible at once
 local STAR_SPAWN_MIN = 0.08 -- seconds between new stars
@@ -18,6 +18,9 @@ local STAR_FADE_OUT = { 0.3, 0.8 }
 local STAR_SCALES = { 1, 2, 2.5 }
 local SCREEN_W = 640
 local SCREEN_H = 360
+
+local enemy_manager = require("scripts.enemy_manager")
+local game_state = require("scripts.game_state")
 
 local function rand_range(r)
 	return r[1] + math.random() * (r[2] - r[1])
@@ -134,6 +137,11 @@ local function spawn_star(self)
 	end)
 end
 
+local function update_highscore()
+	enemy_manager.load_high_score() -- read the saved value from disk
+	gui.set_text(gui.get_node("highscore"), "High Score: " .. string.format("%04d", enemy_manager.high_score))
+end
+
 function init(self)
 	msg.post(".", "acquire_input_focus")
 	self.button = gui.get_node("Start button") -- hit-area + scale pivot
@@ -144,6 +152,7 @@ function init(self)
 	self.bg_node = gui.get_node("bg")
 	self.star_count = 0
 	self.star_timer = 0
+	update_highscore()
 	self.slimes = {}
 	for _, id in ipairs(MENU_SLIMES) do
 		local node = gui.get_node(id)
@@ -194,7 +203,8 @@ local function show_menu(self)
 	self.hovering = false
 	gui.set_scale(self.button, self.base_scale)
 	gui.set_color(self.label, NORMAL_COLOR)
-
+	update_highscore()
+	game_state.set_cursor_visible(true)
 	for _, id in ipairs(FADE_NODES) do
 		local ok, node = pcall(gui.get_node, id)
 		if ok then

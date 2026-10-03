@@ -143,6 +143,7 @@ end
 
 function init(self)
 	game_state.reset()
+	game_state.set_cursor_visible(false)
 	enemy_manager.reset()
 	self.wave_number = 1
 	enemy_manager.load_high_score()

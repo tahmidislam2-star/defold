@@ -14,6 +14,10 @@ key_trigger {
   input: KEY_D
   action: "MOVE_RIGHT"
 }
+key_trigger {
+  input: KEY_TILDE
+  action: "TOGGLE_CURSOR"
+}
 mouse_trigger {
   input: MOUSE_BUTTON_1
   action: "SHOOT"

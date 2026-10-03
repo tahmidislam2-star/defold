@@ -129,6 +129,7 @@ function on_message(self, message_id, message, sender)
 
 			if self.hearts <= 0 then
 				game_state.game_over = true
+				game_state.set_cursor_visible(true)
 				msg.post("/ui#panel", "show_game_over", { score = enemy_manager.score, high_score = enemy_manager.high_score })
 			end
 		end
