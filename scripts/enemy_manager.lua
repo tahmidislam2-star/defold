@@ -416,7 +416,7 @@ if post_attach_size <= 6 and not cluster.is_boss then
 		dir = vmath.normalize(dir)
 		msg.post(enemy_id, "burst", { direction = dir, effect = true })
 	end
-	msg.post("/sfx", "bubble_burst")
+	msg.post("/sfx#bubble_burst", "play_sound")
 	award_points(post_attach_size, true)
 	M.clusters[hit_data.cluster_id] = nil
 	return

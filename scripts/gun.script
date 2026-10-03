@@ -53,7 +53,7 @@ function fire_bullet(self, angle)
 	local dir = vmath.vector3(math.cos(angle), math.sin(angle), 0)
 	local spawn_pos = go.get_position()
 	local bullet_id = factory.create("#bulletfactory", spawn_pos, go.get_rotation())
-
+	msg.post("/sfx#fire", "play_sound", { gain = 0.6 })
 	msg.post(bullet_id, "launch", {
 		color = self.queue[1],
 		direction = dir
