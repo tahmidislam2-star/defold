@@ -15,7 +15,7 @@ key_trigger {
   action: "MOVE_RIGHT"
 }
 key_trigger {
-  input: KEY_TILDE
+  input: KEY_H
   action: "TOGGLE_CURSOR"
 }
 mouse_trigger {

@@ -11,11 +11,11 @@ function M.reset()
 	M.boss_active = false
 end
 
-return M
-
 function M.set_cursor_visible(visible)
 	M.cursor_visible = visible
 	if defos then
 		defos.set_cursor_visible(visible)
 	end
 end
+
+return M

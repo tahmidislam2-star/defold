@@ -1,3 +1,4 @@
+local game_state = require("scripts.game_state")
 local BOUND_MIN_X = 16
 local BOUND_MAX_X = 416
 local BOUND_MIN_Y = 20
